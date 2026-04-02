@@ -1,0 +1,29 @@
+{
+  "pages": [
+    {
+      "path": "pages/login/login",
+      "style": {
+        "navigationBarTitleText": "登录"
+      }
+    },
+    {
+      "path": "pages/home/home",
+      "style": {
+        "navigationBarTitleText": "首页"
+      }
+    },
+    {
+      "path": "pages/submit/submit",
+      "style": {
+        "navigationBarTitleText": "提报"
+      }
+    },
+    {
+      "path": "pages/report/report",
+      "style": {
+        "navigationBarTitleText": "报表"
+      }
+    }
+  ]
+}
+

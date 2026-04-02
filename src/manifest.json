@@ -1,0 +1,32 @@
+{
+  "name": "机务数据中心",
+  "appid": "__UNI__HANDHELD_DEMO__",
+  "description": "机务数据中心",
+  "versionName": "0.0.1",
+  "versionCode": "1",
+  "transformPx": false,
+  "app-plus": {
+    "usingComponents": true,
+    "nvueStyleCompiler": "uni-app",
+    "splashscreen": {
+      "alwaysShowBeforeRender": true,
+      "waiting": true,
+      "autoclose": true,
+      "delay": 0
+    },
+    "modules": {},
+    "distribute": {
+      "android": {
+        "permissions": [
+          "<uses-permission android:name=\"android.permission.INTERNET\"/>"
+        ]
+      }
+    }
+  },
+  "h5": {
+    "router": {
+      "mode": "hash"
+    }
+  }
+}
+
