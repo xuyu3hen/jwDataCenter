@@ -5,7 +5,7 @@
 
       <view class="field">
         <view class="label">账号</view>
-        <input v-model="username" class="input" placeholder="demo" />
+        <input v-model="username" class="input" placeholder="admin" />
       </view>
 
       <view class="field">
@@ -14,7 +14,7 @@
       </view>
 
       <button class="btn" :disabled="loading" @click="handleLogin">{{ loading ? '登录中...' : '登录' }}</button>
-      <view class="hint">默认账号：demo，密码：123456</view>
+      <view class="hint">默认账号：admin，密码：123456</view>
     </view>
   </view>
 </template>
@@ -23,7 +23,7 @@
 import { ref } from 'vue'
 import { login } from '../../api/demo'
 
-const username = ref('demo')
+const username = ref('admin')
 const password = ref('123456')
 const loading = ref(false)
 

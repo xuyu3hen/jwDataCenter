@@ -1,106 +1,130 @@
 <template>
   <view class="page">
-    <view class="card">
-      <view class="title">帆软报表（H5）</view>
-
-      <view class="field">
-        <view class="label">报表链接</view>
-        <input v-model="url" class="input" placeholder="https://..." />
+    <view class="header">
+      <view class="avatar-wrap">
+        <image class="avatar" src="https://coresg-normal.trae.ai/api/ide/v1/text_to_image?prompt=A%20minimalist%20user%20avatar%20icon%20in%20blue%20tones&image_size=square" mode="aspectFill" />
       </view>
-
-      <button class="btn" @click="open">打开</button>
-      <view class="hint">把你们的帆软 H5 链接粘贴到这里即可。</view>
+      <view class="user-info">
+        <view class="name">管理员 (admin)</view>
+        <view class="role">安全监督员</view>
+      </view>
     </view>
 
-    <view v-if="opened" class="web">
-      <web-view :src="url" />
+    <view class="menu-list mt">
+      <view class="menu-item" @click="goHome">
+        <text class="menu-text">违章列表</text>
+        <text class="arrow">></text>
+      </view>
+      <view class="menu-item" @click="goSubmit">
+        <text class="menu-text">违章录入</text>
+        <text class="arrow">></text>
+      </view>
+      <view class="menu-item logout" @click="logout">
+        <text class="menu-text">退出登录</text>
+      </view>
     </view>
   </view>
 </template>
 
 <script setup>
-import { ref } from 'vue'
-import { onShow } from '@dcloudio/uni-app'
-import { getToken } from '../../utils/auth'
+import { clearToken } from '../../utils/auth'
 
-const REPORT_URL_KEY = 'demo_report_url'
-
-const url = ref(uni.getStorageSync(REPORT_URL_KEY) || '')
-const opened = ref(false)
-
-function ensureLogin() {
-  const token = getToken()
-  if (!token) {
-    uni.reLaunch({ url: '/pages/login/login' })
-  }
+function goHome() {
+  uni.reLaunch({ url: '/pages/home/home' })
 }
 
-function open() {
-  const next = (url.value || '').trim()
-  if (!next) {
-    uni.showToast({ title: '请填写链接', icon: 'none' })
-    return
-  }
-  url.value = next
-  uni.setStorageSync(REPORT_URL_KEY, next)
-  opened.value = true
+function goSubmit() {
+  uni.navigateTo({ url: '/pages/submit/submit' })
 }
 
-onShow(() => {
-  ensureLogin()
-})
+function logout() {
+  clearToken()
+  uni.reLaunch({ url: '/pages/login/login' })
+}
 </script>
 
 <style>
 .page {
   padding: 24rpx;
+  background-color: #f5f7fa;
+  min-height: 100vh;
 }
 
-.card {
+.header {
   background: #fff;
-  border-radius: 20rpx;
-  padding: 24rpx;
+  border-radius: 16rpx;
+  padding: 40rpx 32rpx;
+  display: flex;
+  align-items: center;
+  box-shadow: 0 2rpx 10rpx rgba(0,0,0,0.05);
 }
 
-.title {
-  font-size: 34rpx;
-  font-weight: 700;
-  margin-bottom: 18rpx;
+.avatar-wrap {
+  width: 120rpx;
+  height: 120rpx;
+  border-radius: 60rpx;
+  overflow: hidden;
+  margin-right: 32rpx;
+  background: #f0f0f0;
 }
 
-.field {
-  margin-bottom: 18rpx;
+.avatar {
+  width: 100%;
+  height: 100%;
 }
 
-.label {
-  color: #666;
+.user-info {
+  flex: 1;
+}
+
+.name {
+  font-size: 36rpx;
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 8rpx;
+}
+
+.role {
   font-size: 26rpx;
-  margin-bottom: 10rpx;
+  color: #666;
 }
 
-.input {
-  background: #f3f5f7;
-  border-radius: 14rpx;
-  padding: 22rpx;
+.mt {
+  margin-top: 24rpx;
+}
+
+.menu-list {
+  background: #fff;
+  border-radius: 16rpx;
+  padding: 0 32rpx;
+  box-shadow: 0 2rpx 10rpx rgba(0,0,0,0.05);
+}
+
+.menu-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 32rpx 0;
+  border-bottom: 1px solid #f0f0f0;
+}
+.menu-item:last-child {
+  border-bottom: none;
+}
+
+.menu-text {
+  font-size: 30rpx;
+  color: #333;
+}
+
+.arrow {
+  color: #ccc;
   font-size: 28rpx;
 }
 
-.btn {
-  background: #1677ff;
-  color: #fff;
+.logout {
+  justify-content: center;
 }
-
-.hint {
-  margin-top: 16rpx;
-  color: #999;
-  font-size: 24rpx;
-}
-
-.web {
-  margin-top: 18rpx;
-  height: 900rpx;
-  overflow: hidden;
-  border-radius: 20rpx;
+.logout .menu-text {
+  color: #ff4d4f;
 }
 </style>
-

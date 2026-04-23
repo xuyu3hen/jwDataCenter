@@ -9,19 +9,25 @@
     {
       "path": "pages/home/home",
       "style": {
-        "navigationBarTitleText": "首页"
+        "navigationBarTitleText": "违章列表"
       }
     },
     {
       "path": "pages/submit/submit",
       "style": {
-        "navigationBarTitleText": "提报"
+        "navigationBarTitleText": "违章录入"
+      }
+    },
+    {
+      "path": "pages/detail/detail",
+      "style": {
+        "navigationBarTitleText": "违章详情"
       }
     },
     {
       "path": "pages/report/report",
       "style": {
-        "navigationBarTitleText": "报表"
+        "navigationBarTitleText": "我的"
       }
     }
   ]
