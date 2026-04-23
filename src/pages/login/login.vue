@@ -5,36 +5,84 @@
 
       <view class="field">
         <view class="label">账号</view>
-        <input v-model="username" class="input" placeholder="admin" />
+        <input v-model="username" class="input" placeholder="请输入账号" />
       </view>
 
       <view class="field">
         <view class="label">密码</view>
-        <input v-model="password" class="input" placeholder="123456" password />
+        <input v-model="password" class="input" placeholder="请输入密码" password />
+      </view>
+
+      <view class="remember-row">
+        <checkbox-group @change="toggleRemember">
+          <label class="remember-label">
+            <checkbox :checked="rememberMe" style="transform:scale(0.7)" />
+            <text>记住密码</text>
+          </label>
+        </checkbox-group>
       </view>
 
       <button class="btn" :disabled="loading" @click="handleLogin">{{ loading ? '登录中...' : '登录' }}</button>
-      <view class="hint">默认账号：admin，密码：123456</view>
     </view>
   </view>
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { login } from '../../api/demo'
+import { setBaseUrl } from '../../utils/request'
 
-const username = ref('admin')
-const password = ref('123456')
+// 隐藏参数，根据提供的图片设置默认值
+const baseUrl = ref('http://10.102.67.146:8080')
+const clientId = ref('e5f37e4891bf95d1d19206ce24a7b32e')
+const tenantId = ref('')
+const grantType = ref('password')
+const code = ref('')
+const uuid = ref('')
+
+const username = ref('')
+const password = ref('')
 const loading = ref(false)
+const rememberMe = ref(false)
+
+onMounted(() => {
+  const savedUser = uni.getStorageSync('saved_username')
+  const savedPass = uni.getStorageSync('saved_password')
+  if (savedUser && savedPass) {
+    username.value = savedUser
+    password.value = savedPass
+    rememberMe.value = true
+  }
+})
+
+function toggleRemember(e) {
+  rememberMe.value = e.detail.value.length > 0
+}
 
 async function handleLogin() {
   if (loading.value) return
   loading.value = true
   try {
+    setBaseUrl(baseUrl.value)
     await login({
+      clientId: clientId.value.trim(),
+      grantType: grantType.value.trim(),
+      tenantId: tenantId.value.trim(),
+      code: code.value.trim(),
+      uuid: uuid.value.trim(),
       username: username.value.trim(),
       password: password.value
     })
+    
+    // 处理记住密码逻辑
+    if (rememberMe.value) {
+      uni.setStorageSync('saved_username', username.value.trim())
+      uni.setStorageSync('saved_password', password.value)
+    } else {
+      uni.removeStorageSync('saved_username')
+      uni.removeStorageSync('saved_password')
+    }
+
     uni.reLaunch({
       url: '/pages/home/home'
     })
@@ -87,6 +135,20 @@ async function handleLogin() {
   margin-top: 18rpx;
   background: #1677ff;
   color: #fff;
+}
+
+.remember-row {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 10rpx 0 20rpx;
+}
+
+.remember-label {
+  display: flex;
+  align-items: center;
+  font-size: 26rpx;
+  color: #666;
 }
 
 .hint {

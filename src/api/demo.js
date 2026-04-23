@@ -1,4 +1,5 @@
-import { setToken } from '../utils/auth'
+import { setToken, setClientId } from '../utils/auth'
+import { request } from '../utils/request'
 
 const VIOLATIONS_KEY = 'demo_violations'
 
@@ -7,16 +8,68 @@ function nowIso() {
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`
 }
 
-export async function login({ username, password }) {
+export async function login({ username, password, clientId = 'app', grantType = 'password', tenantId = '', code = '', uuid = '' }) {
   if (!username || !password) {
     throw new Error('请输入账号和密码')
   }
-  if (username !== 'admin' || password !== '123456') {
-    throw new Error('账号或密码错误（admin / 123456）')
+
+  try {
+    const payload = {
+      clientId,
+      grantType,
+      tenantId,
+      code,
+      uuid,
+      username,
+      password
+    }
+    console.log('【Login Request】开始调用登录接口, payload:', payload)
+    
+    const res = await request({
+      url: '/auth/login2',
+      method: 'POST',
+      data: payload,
+      header: {
+        'Content-Type': 'application/json'
+      }
+    })
+
+    console.log('【Login Response】登录接口返回结果:', res)
+
+    if (res?.statusCode !== 200) {
+      const msg = res?.data?.msg || res?.data?.message || `登录失败（${res?.statusCode || '未知状态码'}）`
+      console.error('【Login Error】业务报错:', msg)
+      throw new Error(msg)
+    }
+
+    const data = res?.data || {}
+    if (data.code && data.code !== 200 && data.code !== 0) {
+      const msg = data.msg || data.message || `登录失败（${data.code}）`
+      console.error('【Login Error】业务报错:', msg)
+      throw new Error(msg)
+    }
+
+    const token =
+      data.access_token ||
+      data.token ||
+      data.data?.access_token ||
+      data.data?.token ||
+      data.data?.accessToken ||
+      data.accessToken
+
+    if (!token) {
+      throw new Error('登录失败：未获取到token')
+    }
+
+    setToken(token)
+    if (clientId) {
+      setClientId(clientId)
+    }
+    return { token, raw: data }
+  } catch (e) {
+    console.error('【Login Catch Error】登录抛出异常:', e)
+    throw e
   }
-  const token = `demo-${Date.now()}`
-  setToken(token)
-  return { token }
 }
 
 export function getViolations() {
@@ -44,4 +97,18 @@ export async function addViolation(payload) {
 export function getViolationDetail(id) {
   const list = getViolations()
   return list.find(v => v.id === id)
+}
+
+export async function getUserInfo() {
+  const res = await request({
+    url: '/system/user/getInfo',
+    method: 'GET'
+  })
+  
+  const data = res?.data || {}
+  if (data.code && data.code !== 200 && data.code !== 0) {
+    throw new Error(data.msg || data.message || '获取用户信息失败')
+  }
+  
+  return data
 }

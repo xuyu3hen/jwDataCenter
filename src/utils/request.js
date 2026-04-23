@@ -1,23 +1,30 @@
-import { getToken } from './auth'
+import { getToken, getClientId } from './auth'
 
 const BASE_URL_KEY = 'demo_base_url'
 
+function normalizeBaseUrl(url) {
+  const v = (url || '').trim()
+  return v.replace(/\/+$/, '')
+}
+
 export function getBaseUrl() {
-  return (uni.getStorageSync(BASE_URL_KEY) || '').trim()
+  return normalizeBaseUrl(uni.getStorageSync(BASE_URL_KEY) || '')
 }
 
 export function setBaseUrl(url) {
-  uni.setStorageSync(BASE_URL_KEY, (url || '').trim())
+  uni.setStorageSync(BASE_URL_KEY, normalizeBaseUrl(url))
 }
 
 export function request({ url, method = 'GET', data, header }) {
   const baseUrl = getBaseUrl()
   const token = getToken()
+  const clientId = getClientId()
 
   const finalUrl = baseUrl ? `${baseUrl}${url}` : url
   const finalHeader = {
     ...(header || {}),
-    ...(token ? { Authorization: `Bearer ${token}` } : {})
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    ...(clientId ? { ClientId: clientId } : {})
   }
 
   return new Promise((resolve, reject) => {

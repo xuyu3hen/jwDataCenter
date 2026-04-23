@@ -2,11 +2,11 @@
   <view class="page">
     <view class="header">
       <view class="avatar-wrap">
-        <image class="avatar" src="https://coresg-normal.trae.ai/api/ide/v1/text_to_image?prompt=A%20minimalist%20user%20avatar%20icon%20in%20blue%20tones&image_size=square" mode="aspectFill" />
+        <image class="avatar" :src="avatarUrl" mode="aspectFill" />
       </view>
       <view class="user-info">
-        <view class="name">管理员 (admin)</view>
-        <view class="role">安全监督员</view>
+        <view class="name">{{ userInfo.nickName || userInfo.userName || '未知用户' }}</view>
+        <view class="role">{{ roleName }}</view>
       </view>
     </view>
 
@@ -27,7 +27,50 @@
 </template>
 
 <script setup>
+import { ref, computed } from 'vue'
+import { onShow } from '@dcloudio/uni-app'
 import { clearToken } from '../../utils/auth'
+import { getUserInfo } from '../../api/demo'
+
+import { getBaseUrl } from '../../utils/request'
+
+const userInfo = ref({})
+const roles = ref([])
+
+const avatarUrl = computed(() => {
+  if (userInfo.value.avatar) {
+    const base = getBaseUrl()
+    if (userInfo.value.avatar.startsWith('http')) {
+      return userInfo.value.avatar
+    }
+    return base + userInfo.value.avatar
+  }
+  return 'https://coresg-normal.trae.ai/api/ide/v1/text_to_image?prompt=A%20minimalist%20user%20avatar%20icon%20in%20blue%20tones&image_size=square'
+})
+
+const roleName = computed(() => {
+  if (roles.value && roles.value.length > 0) {
+    return roles.value.map(r => r.roleName).join(' / ')
+  }
+  return '暂无角色'
+})
+
+onShow(() => {
+  fetchUserInfo()
+})
+
+async function fetchUserInfo() {
+  try {
+    const data = await getUserInfo()
+    userInfo.value = data.user || {}
+    roles.value = data.roles || []
+  } catch (e) {
+    uni.showToast({
+      title: e.message || '获取用户信息失败',
+      icon: 'none'
+    })
+  }
+}
 
 function goHome() {
   uni.reLaunch({ url: '/pages/home/home' })
