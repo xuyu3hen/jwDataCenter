@@ -6,7 +6,9 @@
     "dev:h5": "cross-env UNI_PLATFORM=h5 vite",
     "build:h5": "cross-env UNI_PLATFORM=h5 vite build",
     "dev:app": "cross-env UNI_PLATFORM=app vite",
-    "build:app": "cross-env UNI_PLATFORM=app vite build"
+    "build:app": "cross-env UNI_PLATFORM=app vite build",
+    "dev:mp-weixin": "cross-env UNI_PLATFORM=mp-weixin vite",
+    "build:mp-weixin": "cross-env UNI_PLATFORM=mp-weixin vite build"
   },
   "dependencies": {
     "@dcloudio/uni-app": "3.0.0-5000620260331001",

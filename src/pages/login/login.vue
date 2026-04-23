@@ -29,7 +29,7 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import { login } from '../../api/demo'
+import { login, getUserInfo } from '../../api/demo'
 import { setBaseUrl } from '../../utils/request'
 
 // 隐藏参数，根据提供的图片设置默认值
@@ -81,6 +81,15 @@ async function handleLogin() {
     } else {
       uni.removeStorageSync('saved_username')
       uni.removeStorageSync('saved_password')
+    }
+
+    // 登录成功后立刻获取个人信息并缓存
+    try {
+      const userInfo = await getUserInfo()
+      uni.setStorageSync('user_info', userInfo)
+    } catch (infoErr) {
+      console.error('【Login】获取个人信息失败:', infoErr)
+      // 可以选择是否在此处打断登录流程，通常获取个人信息失败不阻断进入首页
     }
 
     uni.reLaunch({

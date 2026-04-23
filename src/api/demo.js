@@ -100,13 +100,17 @@ export function getViolationDetail(id) {
 }
 
 export async function getUserInfo() {
+  console.log('【UserInfo Request】开始调用获取个人信息接口: /system/user/getInfo')
   const res = await request({
     url: '/system/user/getInfo',
     method: 'GET'
   })
   
+  console.log('【UserInfo Response】获取个人信息接口返回结果:', res)
+  
   const data = res?.data || {}
   if (data.code && data.code !== 200 && data.code !== 0) {
+    console.error('【UserInfo Error】业务报错:', data.msg || data.message)
     throw new Error(data.msg || data.message || '获取用户信息失败')
   }
   

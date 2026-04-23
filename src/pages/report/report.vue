@@ -61,9 +61,18 @@ onShow(() => {
 
 async function fetchUserInfo() {
   try {
+    // 优先从缓存读取，避免白屏加载闪烁
+    const cached = uni.getStorageSync('user_info')
+    if (cached && cached.user) {
+      userInfo.value = cached.user
+      roles.value = cached.roles || []
+    }
+    
+    // 然后再发请求更新最新数据
     const data = await getUserInfo()
     userInfo.value = data.user || {}
     roles.value = data.roles || []
+    uni.setStorageSync('user_info', data)
   } catch (e) {
     uni.showToast({
       title: e.message || '获取用户信息失败',

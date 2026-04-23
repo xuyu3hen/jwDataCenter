@@ -12,6 +12,7 @@ export function setToken(token) {
 export function clearToken() {
   uni.removeStorageSync(TOKEN_KEY)
   uni.removeStorageSync(CLIENT_ID_KEY)
+  uni.removeStorageSync('user_info')
 }
 
 export function getClientId() {
