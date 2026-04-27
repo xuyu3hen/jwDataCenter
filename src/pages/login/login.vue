@@ -83,19 +83,17 @@ async function handleLogin() {
       uni.removeStorageSync('saved_password')
     }
 
-    // 登录成功后立刻获取个人信息并缓存
-    try {
-      const userInfo = await getUserInfo()
-      uni.setStorageSync('user_info', userInfo)
-    } catch (infoErr) {
-      console.error('【Login】获取个人信息失败:', infoErr)
-      // 可以选择是否在此处打断登录流程，通常获取个人信息失败不阻断进入首页
-    }
+    // 登录成功后立刻获取个人信息并缓存，如果获取失败则视为登录失败
+    const userInfo = await getUserInfo()
+    uni.setStorageSync('user_info', userInfo)
 
     uni.reLaunch({
       url: '/pages/home/home'
     })
   } catch (e) {
+    // 登录失败或获取个人信息失败时，清除可能残留的 token
+    uni.removeStorageSync('demo_token')
+    uni.removeStorageSync('demo_client_id')
     uni.showToast({
       title: e?.message || '登录失败',
       icon: 'none'
@@ -109,6 +107,7 @@ async function handleLogin() {
 <style>
 .page {
   padding: 32rpx;
+  padding-top: 100rpx; /* 增加顶部间距，避免内容被状态栏遮挡 */
 }
 
 .card {
@@ -158,12 +157,6 @@ async function handleLogin() {
   align-items: center;
   font-size: 26rpx;
   color: #666;
-}
-
-.hint {
-  margin-top: 16rpx;
-  color: #999;
-  font-size: 24rpx;
 }
 </style>
 

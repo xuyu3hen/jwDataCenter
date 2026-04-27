@@ -7,6 +7,8 @@
     "build:h5": "cross-env UNI_PLATFORM=h5 vite build",
     "dev:app": "cross-env UNI_PLATFORM=app vite",
     "build:app": "cross-env UNI_PLATFORM=app vite build",
+    "dev:app-plus": "cross-env UNI_PLATFORM=app vite",
+    "build:app-plus": "cross-env UNI_PLATFORM=app vite build",
     "dev:mp-weixin": "cross-env UNI_PLATFORM=mp-weixin vite",
     "build:mp-weixin": "cross-env UNI_PLATFORM=mp-weixin vite build"
   },
