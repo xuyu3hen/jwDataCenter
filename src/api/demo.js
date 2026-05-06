@@ -8,7 +8,7 @@ function nowIso() {
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`
 }
 
-export async function login({ username, password, clientId = 'app', grantType = 'password', tenantId = '', code = '', uuid = '' }) {
+export async function login({ username, password, clientId = '428a8310cd442757ae699df5d894f051', grantType = 'password', tenantId = '', code = '', uuid = '' }) {
   if (!username || !password) {
     throw new Error('请输入账号和密码')
   }

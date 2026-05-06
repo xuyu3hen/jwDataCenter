@@ -14,6 +14,16 @@
 
 ## 2. 详细操作步骤
 
+### 第零步：安装依赖（只需首次/依赖有变更时执行）
+如果终端提示 `node_modules缺少编译器模块，请执行npm install后重试`，说明依赖还没装好（或被清理过）。
+
+在项目根目录执行：
+
+```powershell
+cd D:\jwDataCenter\uniapp-handheld-demo
+npm ci
+```
+
 ### 第一步：在 Trae 中修改代码并编译
 每次您在 Trae 中修改了页面代码（如 `login.vue`、`home.vue`）后，都需要重新编译生成 App 资源：
 
@@ -69,6 +79,9 @@
   - 检查 USB 线是否连接正常（尝试更换接口或数据线，必须是能传数据的线）。
   - 检查手机下拉通知栏，USB 连接模式是否为“文件传输（MTP）”。
   - 重新插拔 USB 线，手机上若弹出“是否允许 USB 调试”，请勾选“始终允许”并点确认。
+- **npm ci / npm install 报错 `EPERM: operation not permitted, unlink ...\\esbuild.exe`**：
+  - 错误原因：编译相关的二进制文件正在被占用（常见：HBuilderX/Vite 正在运行、后台残留进程、杀毒软件占用），常见文件包括 `esbuild.exe`、`rollup.win32-x64-msvc.node`。
+  - 解决办法：先关闭正在运行的编译/预览进程（必要时退出 HBuilderX），再重试安装依赖；如果仍失败，结束 `esbuild.exe` 进程后再执行 `npm ci`。
 - **HBuilderX 报错“缺少编译器模块”**：
   - 错误原因：您在 HBuilderX 中导入了原始的 Vue 工程目录。
   - 解决办法：在 HBuilderX 中右键移除该项目，重新按照**第二步**导入 `dist/build/app` 目录。

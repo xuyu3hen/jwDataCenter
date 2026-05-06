@@ -13,6 +13,7 @@ export function clearToken() {
   uni.removeStorageSync(TOKEN_KEY)
   uni.removeStorageSync(CLIENT_ID_KEY)
   uni.removeStorageSync('user_info')
+  // 退出时不清除 saved_username 和 saved_password，以保留记住密码的状态
 }
 
 export function getClientId() {

@@ -34,7 +34,7 @@ import { setBaseUrl } from '../../utils/request'
 
 // 隐藏参数，根据提供的图片设置默认值
 const baseUrl = ref('http://10.102.67.146:8080')
-const clientId = ref('e5f37e4891bf95d1d19206ce24a7b32e')
+const clientId = ref('428a8310cd442757ae699df5d894f051')
 const tenantId = ref('')
 const grantType = ref('password')
 const code = ref('')
