@@ -6,7 +6,7 @@
     </view>
 
     <view class="actions">
-      <button class="btn primary" @click="go('/pages/submit/submit')">+ 录入违章</button>
+      <button class="btn primary" @click="go('/pages/submit/submit')">+ 新增违章违纪</button>
       <button class="btn" @click="go('/pages/report/report')">我的</button>
     </view>
 
@@ -19,11 +19,11 @@
       <view v-if="violations.length === 0" class="empty">暂无违章记录</view>
       <view v-for="item in violations" :key="item.id" class="item" @click="goDetail(item.id)">
         <view class="row between">
-          <view class="item-title">{{ item.name }} ({{ item.area }})</view>
-          <view class="item-level" :class="getLevelClass(item.level)">{{ item.level }}</view>
+          <view class="item-title">{{ getTitle(item) }}</view>
+          <view class="item-level" :class="getLevelClass(getTag(item))">{{ getTag(item) }}</view>
         </view>
-        <view class="item-meta">{{ item.createdAt }}</view>
-        <view class="item-desc">{{ item.description }}</view>
+        <view class="item-meta">{{ getMeta(item) }}</view>
+        <view class="item-desc">{{ getDesc(item) }}</view>
       </view>
     </view>
   </view>
@@ -61,9 +61,30 @@ function logout() {
   uni.reLaunch({ url: '/pages/login/login' })
 }
 
+function getTitle(item) {
+  const name = item.responsibleName || item.name || '未填写'
+  const dept = item.responsibleDeptName || item.area || '未填写'
+  return `${name} (${dept})`
+}
+
+function getMeta(item) {
+  const date = item.occurDate || item.createdAt || '-'
+  const type = item.violationType || ''
+  return type ? `${date} · ${type}` : date
+}
+
+function getDesc(item) {
+  return item.violationSituation || item.description || '无'
+}
+
+function getTag(item) {
+  return item.violationNature || item.level || '未分类'
+}
+
 function getLevelClass(level) {
-  if (level === '严重违章') return 'level-high'
-  if (level === '一般违章') return 'level-medium'
+  const v = (level || '').toString()
+  if (v.includes('严重') || v.includes('高')) return 'level-high'
+  if (v.includes('一般') || v.includes('中')) return 'level-medium'
   return 'level-low'
 }
 

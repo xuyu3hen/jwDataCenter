@@ -77,21 +77,25 @@ export function getViolations() {
 }
 
 export async function addViolation(payload) {
-  if (!payload?.name) throw new Error('请填写违章人姓名')
-  if (!payload?.area) throw new Error('请填写违章区域')
-  if (!payload?.level) throw new Error('请选择违章级别')
+  if (!payload?.responsibleName && !payload?.name) throw new Error('请填写责任人')
+  if (!payload?.responsibleWorkNumber) throw new Error('请选择责任人')
+  if (!payload?.occurDate && !payload?.createdAt) throw new Error('请选择发生日期')
+  if (!payload?.violationSituation && !payload?.description) throw new Error('请填写违章情况')
+  if (!payload?.reportDept) throw new Error('请选择提报部门')
+  if (!payload?.reportMethod) throw new Error('请选择提报方式')
   
   const list = getViolations()
+  const record = {
+    id: `${Date.now()}`,
+    createdAt: nowIso(),
+    ...payload
+  }
   const next = [
-    {
-      id: `${Date.now()}`,
-      createdAt: nowIso(),
-      ...payload
-    },
+    record,
     ...list
   ]
   uni.setStorageSync(VIOLATIONS_KEY, next)
-  return { ok: true }
+  return { ok: true, id: record.id }
 }
 
 export function getViolationDetail(id) {
@@ -113,6 +117,88 @@ export async function getUserInfo() {
     console.error('【UserInfo Error】业务报错:', data.msg || data.message)
     throw new Error(data.msg || data.message || '获取用户信息失败')
   }
-  
-  return data
+  return data?.data || data
+}
+
+export async function getDictData(type) {
+  const t = String(type || '').trim()
+  if (!t) throw new Error('缺少字典类型')
+
+  const res = await request({
+    url: `/system/dict/data/type/${encodeURIComponent(t)}`,
+    method: 'GET'
+  })
+
+  if (res?.statusCode !== 200) {
+    const msg = res?.data?.msg || res?.data?.message || `查询失败（${res?.statusCode || '未知状态码'}）`
+    throw new Error(msg)
+  }
+
+  const data = res?.data || {}
+  if (data.code && data.code !== 200 && data.code !== 0) {
+    throw new Error(data.msg || data.message || `查询失败（${data.code}）`)
+  }
+
+  const payload = data?.data ?? data
+  if (Array.isArray(payload)) return payload
+  if (Array.isArray(payload?.rows)) return payload.rows
+  if (Array.isArray(payload?.list)) return payload.list
+  return []
+}
+
+export async function getUserByWorkCardNumber(workCardNumber) {
+  const v = String(workCardNumber || '').trim()
+  if (!v) throw new Error('请输入工号')
+
+  const data = await getUserDetailByWorkCardNumber(v)
+  return data?.user || data || null
+}
+
+export async function getUserByWorkNumber(workNumber) {
+  return getUserByWorkCardNumber(workNumber)
+}
+
+export async function getUserDetailByWorkCardNumber(workCardNumber) {
+  const raw = String(workCardNumber || '').trim()
+  if (!raw) throw new Error('请输入工号')
+
+  const q = encodeURIComponent(raw)
+  const res = await request({ url: `/system/user/selectOne/workCardNumber?workCardNumber=${q}`, method: 'GET' })
+
+  if (res?.statusCode !== 200) {
+    const msg = res?.data?.msg || res?.data?.message || `查询失败（${res?.statusCode || '未知状态码'}）`
+    throw new Error(msg)
+  }
+
+  const data = res?.data || {}
+  if (data.code && data.code !== 200 && data.code !== 0) {
+    throw new Error(data.msg || data.message || `查询失败（${data.code}）`)
+  }
+
+  return data?.data ?? data
+}
+
+export async function searchUsersByWorkCardNumber(workCardNumber) {
+  const raw = String(workCardNumber || '').trim()
+  if (!raw) return []
+
+  const q = encodeURIComponent(raw)
+  const res = await request({ url: `/system/user/select/workCardNumber?workCardNumber=${q}`, method: 'GET' })
+
+  if (res?.statusCode !== 200) {
+    const msg = res?.data?.msg || res?.data?.message || `查询失败（${res?.statusCode || '未知状态码'}）`
+    throw new Error(msg)
+  }
+
+  const data = res?.data || {}
+  if (data.code && data.code !== 200 && data.code !== 0) {
+    throw new Error(data.msg || data.message || `查询失败（${data.code}）`)
+  }
+
+  const payload = data?.data ?? data
+  if (Array.isArray(payload)) return payload
+  if (Array.isArray(payload?.rows)) return payload.rows
+  if (Array.isArray(payload?.list)) return payload.list
+  if (payload && typeof payload === 'object') return [payload]
+  return []
 }

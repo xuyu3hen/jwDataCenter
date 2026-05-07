@@ -10,13 +10,44 @@
       </view>
     </view>
 
+    <view class="info-card mt">
+      <view class="info-row">
+        <text class="info-label">部门</text>
+        <text class="info-value">{{ userInfo.deptName || '-' }}</text>
+      </view>
+      <view class="info-row">
+        <text class="info-label">工号</text>
+        <text class="info-value">{{ userInfo.workNumber || userInfo.workCardNumber || '-' }}</text>
+      </view>
+      <view class="info-row">
+        <text class="info-label">岗位</text>
+        <text class="info-value">{{ userInfo.postType || userInfo.postName || '-' }}</text>
+      </view>
+      <view class="info-row">
+        <text class="info-label">登录IP</text>
+        <text class="info-value">{{ userInfo.loginIp || '-' }}</text>
+      </view>
+      <view class="info-row">
+        <text class="info-label">登录时间</text>
+        <text class="info-value">{{ userInfo.loginDate || '-' }}</text>
+      </view>
+      <view class="info-row">
+        <text class="info-label">角色</text>
+        <text class="info-value">{{ roleNamesText }}</text>
+      </view>
+      <view class="info-row">
+        <text class="info-label">权限</text>
+        <text class="info-value">{{ permissionsText }}</text>
+      </view>
+    </view>
+
     <view class="menu-list mt">
       <view class="menu-item" @click="goHome">
         <text class="menu-text">违章列表</text>
         <text class="arrow">></text>
       </view>
       <view class="menu-item" @click="goSubmit">
-        <text class="menu-text">违章录入</text>
+        <text class="menu-text">新增违章违纪</text>
         <text class="arrow">></text>
       </view>
       <view class="menu-item logout" @click="logout">
@@ -35,7 +66,9 @@ import { getUserInfo } from '../../api/demo'
 import { getBaseUrl } from '../../utils/request'
 
 const userInfo = ref({})
-const roles = ref([])
+const roleObjects = ref([])
+const roleKeys = ref([])
+const permissions = ref([])
 
 const avatarUrl = computed(() => {
   if (userInfo.value.avatar) {
@@ -49,10 +82,26 @@ const avatarUrl = computed(() => {
 })
 
 const roleName = computed(() => {
-  if (roles.value && roles.value.length > 0) {
-    return roles.value.map(r => r.roleName).join(' / ')
+  if (roleObjects.value && roleObjects.value.length > 0) {
+    return roleObjects.value.map(r => r.roleName).filter(Boolean).join(' / ')
   }
   return '暂无角色'
+})
+
+const roleNamesText = computed(() => {
+  if (roleObjects.value && roleObjects.value.length > 0) {
+    return roleObjects.value.map(r => r.roleName).filter(Boolean).join(' / ')
+  }
+  if (roleKeys.value && roleKeys.value.length > 0) {
+    return roleKeys.value.join(' / ')
+  }
+  return '-'
+})
+
+const permissionsText = computed(() => {
+  if (!permissions.value || permissions.value.length === 0) return '-'
+  if (permissions.value.length <= 3) return permissions.value.join(' / ')
+  return `${permissions.value.slice(0, 3).join(' / ')} 等${permissions.value.length}项`
 })
 
 onShow(() => {
@@ -61,17 +110,11 @@ onShow(() => {
 
 async function fetchUserInfo() {
   try {
-    // 优先从缓存读取，避免白屏加载闪烁
     const cached = uni.getStorageSync('user_info')
-    if (cached && cached.user) {
-      userInfo.value = cached.user
-      roles.value = cached.roles || []
-    }
+    if (cached && cached.user) applyUserInfo(cached)
     
-    // 然后再发请求更新最新数据
     const data = await getUserInfo()
-    userInfo.value = data.user || {}
-    roles.value = data.roles || []
+    applyUserInfo(data)
     uni.setStorageSync('user_info', data)
   } catch (e) {
     uni.showToast({
@@ -79,6 +122,13 @@ async function fetchUserInfo() {
       icon: 'none'
     })
   }
+}
+
+function applyUserInfo(data) {
+  userInfo.value = data?.user || {}
+  roleObjects.value = userInfo.value?.roles || []
+  roleKeys.value = data?.roles || []
+  permissions.value = data?.permissions || []
 }
 
 function goHome() {
@@ -143,6 +193,38 @@ function logout() {
 
 .mt {
   margin-top: 24rpx;
+}
+
+.info-card {
+  background: #fff;
+  border-radius: 16rpx;
+  padding: 8rpx 32rpx;
+  box-shadow: 0 2rpx 10rpx rgba(0,0,0,0.05);
+}
+
+.info-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 22rpx 0;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.info-row:last-child {
+  border-bottom: none;
+}
+
+.info-label {
+  font-size: 28rpx;
+  color: #666;
+}
+
+.info-value {
+  font-size: 28rpx;
+  color: #111;
+  max-width: 70%;
+  text-align: right;
+  word-break: break-all;
 }
 
 .menu-list {

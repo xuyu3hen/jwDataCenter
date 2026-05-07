@@ -15,7 +15,7 @@
     {
       "path": "pages/submit/submit",
       "style": {
-        "navigationBarTitleText": "违章录入"
+        "navigationBarTitleText": "新增违章违纪"
       }
     },
     {

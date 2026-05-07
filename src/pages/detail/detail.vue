@@ -2,30 +2,78 @@
   <view class="page">
     <view class="card" v-if="violation">
       <view class="header">
-        <view class="title">{{ violation.name }}</view>
-        <view class="level" :class="getLevelClass(violation.level)">{{ violation.level }}</view>
+        <view class="title">{{ getTitle(violation) }}</view>
+        <view class="level" :class="getLevelClass(getTag(violation))">{{ getTag(violation) }}</view>
       </view>
 
       <view class="info-list">
         <view class="info-item">
-          <text class="label">违章区域：</text>
-          <text class="value">{{ violation.area }}</text>
+          <text class="label">单位：</text>
+          <text class="value">{{ violation.responsibleDeptName || violation.area || '-' }}</text>
         </view>
         <view class="info-item">
-          <text class="label">违章时间：</text>
-          <text class="value">{{ violation.createdAt }}</text>
+          <text class="label">车间：</text>
+          <text class="value">{{ violation.workshop || '-' }}</text>
         </view>
         <view class="info-item">
-          <text class="label">具体违章项：</text>
-          <text class="value">{{ violation.item }}</text>
+          <text class="label">车队：</text>
+          <text class="value">{{ violation.team || '-' }}</text>
         </view>
         <view class="info-item">
-          <text class="label">扣减分数：</text>
-          <text class="value points">{{ violation.points ? '-' + violation.points + '分' : '无' }}</text>
+          <text class="label">班组：</text>
+          <text class="value">{{ violation.group || '-' }}</text>
+        </view>
+        <view class="info-item">
+          <text class="label">职务：</text>
+          <text class="value">{{ violation.postName || '-' }}</text>
+        </view>
+        <view class="info-item">
+          <text class="label">政治面貌：</text>
+          <text class="value">{{ violation.political || '-' }}</text>
+        </view>
+        <view class="info-item">
+          <text class="label">工号：</text>
+          <text class="value">{{ violation.responsibleWorkNumber || '-' }}</text>
+        </view>
+        <view class="info-item">
+          <text class="label">工资号：</text>
+          <text class="value">{{ violation.payNumber || '-' }}</text>
+        </view>
+        <view class="info-item">
+          <text class="label">发生日期：</text>
+          <text class="value">{{ violation.occurDate || violation.createdAt || '-' }}</text>
         </view>
         <view class="info-item block">
-          <text class="label">违章描述：</text>
-          <text class="value desc">{{ violation.description || '无' }}</text>
+          <text class="label">违章情况：</text>
+          <text class="value desc">{{ violation.violationSituation || violation.description || '无' }}</text>
+        </view>
+        <view class="info-item">
+          <text class="label">提报部门：</text>
+          <text class="value">{{ violation.reportDept || '-' }}</text>
+        </view>
+        <view class="info-item">
+          <text class="label">提报方式：</text>
+          <text class="value">{{ violation.reportMethod || '-' }}</text>
+        </view>
+        <view class="info-item">
+          <text class="label">提报人：</text>
+          <text class="value">{{ violation.reporterName || '-' }}</text>
+        </view>
+        <view class="info-item">
+          <text class="label">违章类型：</text>
+          <text class="value">{{ violation.violationType || '-' }}</text>
+        </view>
+        <view class="info-item">
+          <text class="label">纪律考核：</text>
+          <text class="value">{{ violation.disciplineAssessment || '-' }}</text>
+        </view>
+        <view class="info-item">
+          <text class="label">考核结果：</text>
+          <text class="value">{{ violation.assessmentResult || '-' }}</text>
+        </view>
+        <view class="info-item block" v-if="violation.remark">
+          <text class="label">备注内容：</text>
+          <text class="value desc">{{ violation.remark }}</text>
         </view>
       </view>
 
@@ -66,7 +114,18 @@ onLoad((options) => {
 function getLevelClass(level) {
   if (level === '严重违章') return 'level-high'
   if (level === '一般违章') return 'level-medium'
+  const v = (level || '').toString()
+  if (v.includes('严重') || v.includes('高')) return 'level-high'
+  if (v.includes('一般') || v.includes('中')) return 'level-medium'
   return 'level-low'
+}
+
+function getTag(item) {
+  return item.violationNature || item.level || '未分类'
+}
+
+function getTitle(item) {
+  return item.responsibleName || item.name || '违章详情'
 }
 
 function previewImage(idx) {
