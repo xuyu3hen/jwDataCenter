@@ -72,35 +72,113 @@ export async function login({ username, password, clientId = '428a8310cd442757ae
   }
 }
 
-export function getViolations() {
-  return uni.getStorageSync(VIOLATIONS_KEY) || []
+export async function getViolations(params = { pageNum: 1, pageSize: 10 }) {
+  const res = await request({
+    url: '/safety/violation/select/page',
+    method: 'GET',
+    data: params
+  })
+  return parseListResponse(res)
 }
 
 export async function addViolation(payload) {
-  if (!payload?.responsibleName && !payload?.name) throw new Error('请填写责任人')
-  if (!payload?.responsibleWorkNumber) throw new Error('请选择责任人')
-  if (!payload?.occurDate && !payload?.createdAt) throw new Error('请选择发生日期')
-  if (!payload?.violationSituation && !payload?.description) throw new Error('请填写违章情况')
+  if (!payload?.responsibleName) throw new Error('请填写责任人')
+  if (!payload?.occurDate) throw new Error('请选择发生日期')
+  if (!payload?.violationSituation) throw new Error('请填写违章情况')
   if (!payload?.reportDept) throw new Error('请选择提报部门')
   if (!payload?.reportMethod) throw new Error('请选择提报方式')
   
-  const list = getViolations()
-  const record = {
-    id: `${Date.now()}`,
-    createdAt: nowIso(),
-    ...payload
+  const occurTime = payload.occurDate ? `${payload.occurDate} 00:00:00` : ''
+  const staTime = payload.occurDate ? payload.occurDate.substring(0, 7) : ''
+
+  const data = {
+    staTime: staTime,
+    workNumber: payload.responsibleWorkNumber,
+    name: payload.responsibleName,
+    assessment: payload.economicAssessment,
+    assessmentResult: payload.assessmentResult,
+    content: payload.violationSituation,
+    
+    dutyDept: payload.dutyDeptId || '',
+    dutyDeptName: payload.responsibleDeptName,
+    dutyGroup: payload.team,
+    dutyGroupId: payload.dutyGroupId || '',
+    dutyWorkShop: payload.workshop,
+    dutyWorkShopId: payload.dutyWorkShopId || '',
+    
+    occurTime: occurTime,
+    payNumber: payload.payNumber,
+    politicalStatus: payload.politicalCode || payload.political,
+    postName: payload.postCode || payload.postName,
+    postType: payload.postCategory,
+    proType: payload.majorCategory,
+    regulation: payload.violationNature,
+    regulationContent: payload.clauseContent,
+    
+    reportDept: payload.reportDeptId,
+    reportDeptName: payload.reportDept,
+    
+    reportName: payload.reporterName,
+    reportNameList: payload.reporterName ? [payload.reporterName] : [],
+    
+    reportPayNumber: payload.reporterSalaryNumber || "null",
+    reportPayNumberList: [payload.reporterSalaryNumber || null],
+    
+    reportType: payload.reportMethod,
+    
+    reportWorkCardNumber: payload.reporterWorkNumber,
+    reportWorkCardNumberList: payload.reporterWorkNumber ? [payload.reporterWorkNumber] : [],
+    reportWorkNumber: payload.reporterWorkNumber,
+    reportWorkNumberList: payload.reporterWorkNumber ? [payload.reporterWorkNumber] : [],
+    reporterList: payload.reporterWorkNumber ? [payload.reporterWorkNumber] : [],
+    
+    reporterIds: payload.reporterWorkNumber ? [payload.reporterWorkNumber] : [],
+    reporterIdCards: [null],
+    
+    ruleId: payload.ruleId || '',
+    
+    steeringGroup: payload.group,
+    steeringGroupId: payload.steeringGroupId || '',
+    
+    type: payload.violationType,
+    workCardNumber: payload.responsibleWorkNumber
   }
-  const next = [
-    record,
-    ...list
-  ]
-  uni.setStorageSync(VIOLATIONS_KEY, next)
-  return { ok: true, id: record.id }
+
+  const res = await request({
+    url: '/safety/violation/save',
+    method: 'POST',
+    data: data
+  })
+
+  if (res?.statusCode !== 200) {
+    const msg = res?.data?.msg || res?.data?.message || `保存失败（${res?.statusCode || '未知状态码'}）`
+    throw new Error(msg)
+  }
+
+  const resData = res?.data || {}
+  if (resData.code && resData.code !== 200 && resData.code !== 0) {
+    throw new Error(resData.msg || resData.message || `保存失败（${resData.code}）`)
+  }
+
+  return { ok: true, data: resData }
 }
 
-export function getViolationDetail(id) {
-  const list = getViolations()
-  return list.find(v => v.id === id)
+export async function getViolationDetail(id) {
+  const res = await request({
+    url: `/safety/violation/${id}`,
+    method: 'GET'
+  })
+  
+  if (res?.statusCode !== 200) {
+    throw new Error(`查询失败（${res?.statusCode || '未知状态码'}）`)
+  }
+  
+  const resData = res?.data || {}
+  if (resData.code && resData.code !== 200 && resData.code !== 0) {
+    throw new Error(resData.msg || resData.message || `查询失败（${resData.code}）`)
+  }
+  
+  return resData?.data ?? resData
 }
 
 export async function getUserInfo() {
@@ -198,7 +276,62 @@ export async function searchUsersByWorkCardNumber(workCardNumber) {
   const payload = data?.data ?? data
   if (Array.isArray(payload)) return payload
   if (Array.isArray(payload?.rows)) return payload.rows
+  if (Array.isArray(payload?.records)) return payload.records
   if (Array.isArray(payload?.list)) return payload.list
   if (payload && typeof payload === 'object') return [payload]
   return []
+}
+
+async function parseListResponse(res) {
+  if (res?.statusCode !== 200) {
+    const msg = res?.data?.msg || res?.data?.message || `查询失败（${res?.statusCode || '未知状态码'}）`
+    throw new Error(msg)
+  }
+
+  const data = res?.data || {}
+  if (data.code && data.code !== 200 && data.code !== 0) {
+    throw new Error(data.msg || data.message || `查询失败（${data.code}）`)
+  }
+
+  const payload = data?.data ?? data
+  if (Array.isArray(payload)) return payload
+  if (Array.isArray(payload?.rows)) return payload.rows
+  if (Array.isArray(payload?.list)) return payload.list
+  if (payload && typeof payload === 'object') return [payload]
+  return []
+}
+
+export async function searchUsersByNickNamePy(nickNamePy) {
+  const raw = String(nickNamePy || '').trim()
+  if (!raw) return []
+  const q = encodeURIComponent(raw)
+  const res = await request({ url: `/system/user/select/nickNamePy?nickNamePy=${q}`, method: 'GET' })
+  return parseListResponse(res)
+}
+
+export async function searchUsersByNickName(nickName) {
+  const raw = String(nickName || '').trim()
+  if (!raw) return []
+  const q = encodeURIComponent(raw)
+  const res = await request({ url: `/system/user/select/nickName?nickName=${q}`, method: 'GET' })
+  return parseListResponse(res)
+}
+
+export async function getReportDeptListByDepotId(depotId) {
+  const raw = String(depotId ?? '').trim()
+  if (!raw) return []
+  const q = encodeURIComponent(raw)
+  const res = await request({ url: `/system/dept/list/team?depotId=${q}`, method: 'GET' })
+  return parseListResponse(res)
+}
+
+export async function getViolationRuleListBySector(sector) {
+  const raw = String(sector || '').trim()
+  if (!raw) return []
+  const res = await request({ 
+    url: '/safety/violation/rule/select/list', 
+    method: 'POST',
+    data: { sector: raw }
+  })
+  return parseListResponse(res)
 }

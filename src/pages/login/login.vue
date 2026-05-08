@@ -29,7 +29,7 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import { login, getUserInfo } from '../../api/demo'
+import { login, getUserInfo, getDictData } from '../../api/demo'
 import { setBaseUrl } from '../../utils/request'
 
 // 隐藏参数，根据提供的图片设置默认值
@@ -86,6 +86,23 @@ async function handleLogin() {
     // 登录成功后立刻获取个人信息并缓存，如果获取失败则视为登录失败
     const userInfo = await getUserInfo()
     uni.setStorageSync('user_info', userInfo)
+
+    const dictTasks = [
+      { type: 'zgglxt_xgw', key: 'dict_zgglxt_xgw' },
+      { type: 'zgglxt_zzmm', key: 'dict_zgglxt_zzmm' },
+      { type: 'safety_violation_report_type', key: 'dict_safety_violation_report_type' },
+      { type: 'safety_post_type', key: 'dict_safety_post_type' },
+      { type: 'safety_violation_post_type', key: 'dict_safety_violation_post_type' },
+      { type: 'safety_violation_type', key: 'dict_safety_violation_type' },
+      { type: 'safety_violation_assessment', key: 'dict_safety_violation_assessment' }
+    ]
+    const dictResults = await Promise.allSettled(dictTasks.map(x => getDictData(x.type)))
+    for (let i = 0; i < dictResults.length; i++) {
+      const r = dictResults[i]
+      if (r.status === 'fulfilled' && Array.isArray(r.value)) {
+        uni.setStorageSync(dictTasks[i].key, r.value)
+      }
+    }
 
     uni.reLaunch({
       url: '/pages/home/home'

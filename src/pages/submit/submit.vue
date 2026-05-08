@@ -7,7 +7,7 @@
           <input
             class="input"
             v-model="responsibleQuery"
-            placeholder="请输入工号"
+            placeholder="请输入责任人"
             @input="onResponsibleInput"
             @focus="onResponsibleFocus"
             @blur="onResponsibleBlur"
@@ -24,11 +24,6 @@
             </view>
           </view>
         </view>
-      </view>
-
-      <view class="field">
-        <text class="label"><text class="required">*</text>责任人姓名</text>
-        <input class="input" v-model="form.responsibleName" placeholder="自动填充，可手动修改" />
       </view>
 
       <view class="field">
@@ -97,24 +92,50 @@
 
       <view class="field">
         <text class="label">提报人姓名</text>
-        <input class="input" v-model="form.reporterName" placeholder="请输入提报人姓名" />
+        <view class="suggest-wrap">
+          <input
+            class="input"
+            v-model="reporterQuery"
+            placeholder="请输入提报人姓名"
+            @input="onReporterInput"
+            @focus="onReporterFocus"
+            @blur="onReporterBlur"
+            @confirm="onReporterConfirm"
+          />
+          <view v-if="reporterOpen && reporterSuggestions.length > 0" class="suggest-panel">
+            <view
+              v-for="item in reporterSuggestions"
+              :key="getSuggestionKey(item)"
+              class="suggest-item"
+              @click="selectReporter(item)"
+            >
+              <text class="suggest-text">{{ formatReporterSuggestion(item) }}</text>
+            </view>
+          </view>
+        </view>
       </view>
 
       <view class="field">
         <text class="label">提报人工号</text>
-        <input class="input" v-model="form.reporterWorkNumber" placeholder="请输入提报人工号" />
+        <input class="input" v-model="form.reporterWorkNumber" disabled placeholder="自动获取" />
       </view>
 
       <view class="field">
         <text class="label">提报人工资号</text>
-        <input class="input" v-model="form.reporterSalaryNumber" placeholder="请输入提报人工资号" />
+        <input class="input" v-model="form.reporterSalaryNumber" disabled placeholder="自动获取" />
       </view>
 
       <view class="field">
         <text class="label"><text class="required">*</text>提报部门</text>
-        <picker @change="onReportDeptChange" :value="reportDeptIndex" :range="reportDeptOptions">
-          <view class="picker-value" :class="{ empty: reportDeptIndex === -1 }">
-            {{ reportDeptIndex > -1 ? reportDeptOptions[reportDeptIndex] : '请选择提报部门' }}
+        <picker
+          mode="multiSelector"
+          :range="[reportDeptLv1Options, reportDeptLv2Options]"
+          :value="reportDeptValue"
+          @change="onReportDeptChange"
+          @columnchange="onReportDeptColumnChange"
+        >
+          <view class="picker-value" :class="{ empty: !form.reportDept }">
+            {{ form.reportDept || '请选择提报部门' }}
           </view>
         </picker>
       </view>
@@ -156,39 +177,66 @@
       </view>
 
       <view class="field">
-        <text class="label">违章性质</text>
-        <picker @change="onViolationNatureChange" :value="violationNatureIndex" :range="violationNatureOptions">
-          <view class="picker-value" :class="{ empty: violationNatureIndex === -1 }">
-            {{ violationNatureIndex > -1 ? violationNatureOptions[violationNatureIndex] : '请选择违章性质' }}
+            <text class="label">违章性质</text>
+            <view class="suggest-wrap">
+              <input
+                class="input"
+                v-model="violationNatureQuery"
+                placeholder="请输入并选择违章性质"
+                @input="onViolationNatureInput"
+                @focus="onViolationNatureFocus"
+                @blur="onViolationNatureBlur"
+              />
+              <view v-if="violationNatureOpen && violationNatureSuggestions.length > 0" class="suggest-panel">
+                <view
+                  v-for="(item, idx) in violationNatureSuggestions"
+                  :key="idx"
+                  class="suggest-item"
+                  @click="selectViolationNature(item)"
+                >
+                  <text class="suggest-text">{{ item.label }}</text>
+                </view>
+              </view>
+            </view>
           </view>
-        </picker>
-      </view>
 
-      <view class="field">
-        <text class="label"><text class="required">*</text>纪律考核</text>
-        <picker @change="onDisciplineChange" :value="disciplineIndex" :range="disciplineOptions">
-          <view class="picker-value" :class="{ empty: disciplineIndex === -1 }">
-            {{ disciplineIndex > -1 ? disciplineOptions[disciplineIndex] : '请选择纪律考核' }}
+          <view class="field">
+            <text class="label">经济考核</text>
+            <view class="suggest-wrap">
+              <input
+                class="input"
+                v-model="economicAssessmentQuery"
+                placeholder="请输入或选择经济考核金额"
+                type="digit"
+                @input="onEconomicAssessmentInput"
+                @focus="onEconomicAssessmentFocus"
+                @blur="onEconomicAssessmentBlur"
+              />
+              <view v-if="economicAssessmentOpen && economicAssessmentSuggestions.length > 0" class="suggest-panel">
+                <view
+                  v-for="(item, idx) in economicAssessmentSuggestions"
+                  :key="idx"
+                  class="suggest-item"
+                  @click="selectEconomicAssessment(item)"
+                >
+                  <text class="suggest-text">{{ item.label }}</text>
+                </view>
+              </view>
+            </view>
           </view>
-        </picker>
-      </view>
 
-      <view class="field">
-        <text class="label">考核结果</text>
-        <picker @change="onResultChange" :value="resultIndex" :range="resultOptions">
-          <view class="picker-value" :class="{ empty: resultIndex === -1 }">
-            {{ resultIndex > -1 ? resultOptions[resultIndex] : '请选择考核结果' }}
+          <view class="field">
+            <text class="label">考核结果</text>
+            <input class="input" v-model="form.assessmentResult" disabled placeholder="自动获取" />
           </view>
-        </picker>
-      </view>
 
-      <view class="field">
-        <text class="label">备注内容</text>
-        <textarea class="textarea" v-model="form.remark" placeholder="请输入备注内容" />
-      </view>
+          <view class="field">
+            <text class="label">条款内容</text>
+            <textarea class="textarea" v-model="form.clauseContent" disabled placeholder="自动获取" />
+          </view>
 
-      <view class="field">
-        <text class="label">现场照片 (最多3张)</text>
+          <view class="field">
+            <text class="label">现场照片 (最多3张)</text>
         <view class="photo-list">
           <view class="photo-item" v-for="(img, idx) in form.photos" :key="idx">
             <image :src="img" class="photo" mode="aspectFill" @click="previewImage(idx)" />
@@ -209,7 +257,7 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import { addViolation, searchUsersByWorkCardNumber, getUserDetailByWorkCardNumber, getDictData } from '../../api/demo'
+import { addViolation, searchUsersByWorkCardNumber, searchUsersByNickNamePy, searchUsersByNickName, getUserDetailByWorkCardNumber, getDictData, getReportDeptListByDepotId, getViolationRuleListBySector } from '../../api/demo'
 
 const form = ref({
   responsibleName: '',
@@ -229,15 +277,23 @@ const form = ref({
   reporterWorkNumber: '',
   reporterSalaryNumber: '',
   reportDept: '',
+  reportDeptId: '',
+  reportDeptParentId: '',
   reportMethod: '',
   majorCategory: '',
   postCategory: '',
   violationType: '',
   violationNature: '',
-  disciplineAssessment: '',
+  economicAssessment: '',
+  clauseContent: '',
   assessmentResult: '',
-  remark: '',
-  photos: []
+  photos: [],
+  ruleId: '',
+  dutyDeptId: '',
+  dutyWorkShopId: '',
+  dutyGroupId: '',
+  steeringGroupId: '',
+  responsibleUserId: ''
 })
 
 const submitting = ref(false)
@@ -253,69 +309,263 @@ const politicalItems = ref([])
 const politicalOptions = ref([])
 const politicalIndex = ref(-1)
 
-const reportDeptOptions = ['机务部', '车间', '车队', '班组', '其他']
-const reportDeptIndex = ref(-1)
+const reportDeptNodes = ref([])
+const reportDeptLv1Nodes = ref([])
+const reportDeptLv2ByParentId = ref({})
+const reportDeptLv1Options = ref([])
+const reportDeptLv2Options = ref([])
+const reportDeptValue = ref([0, 0])
 
-const reportMethodOptions = ['现场录入', '电话提报', '系统导入', '其他']
+const DICT_REPORT_METHOD_KEY = 'dict_safety_violation_report_type'
+const DICT_POST_CATEGORY_KEY = 'dict_safety_post_type'
+const DICT_MAJOR_CATEGORY_KEY = 'dict_safety_violation_post_type'
+
+const reportMethodItems = ref([])
+const reportMethodOptions = ref([])
 const reportMethodIndex = ref(-1)
 
-const majorCategoryOptions = ['机务', '电务', '工务', '车辆', '其他']
+const majorCategoryItems = ref([])
+const majorCategoryOptions = ref([])
 const majorCategoryIndex = ref(-1)
 
-const postCategoryOptions = ['司机', '检修', '调度', '管理', '其他']
+const postCategoryItems = ref([])
+const postCategoryOptions = ref([])
 const postCategoryIndex = ref(-1)
 
-const violationTypeOptions = ['违章', '违纪', '其他']
+const DICT_VIOLATION_TYPE_KEY = 'dict_safety_violation_type'
+const DICT_ECONOMIC_ASSESSMENT_KEY = 'dict_safety_violation_assessment'
+
+const violationTypeItems = ref([])
+const violationTypeOptions = ref([])
 const violationTypeIndex = ref(-1)
 
-const violationNatureOptions = ['一般', '严重', '其他']
-const violationNatureIndex = ref(-1)
+const violationNatureItems = ref([])
+const violationNatureQuery = ref('')
+const violationNatureOpen = ref(false)
+const violationNatureSuggestions = ref([])
+const violationNatureHideTimer = ref(null)
 
-const disciplineOptions = ['是', '否']
-const disciplineIndex = ref(-1)
-
-const resultOptions = ['通过', '不通过', '待定']
-const resultIndex = ref(-1)
+const economicAssessmentItems = ref([])
+const economicAssessmentQuery = ref('')
+const economicAssessmentOpen = ref(false)
+const economicAssessmentSuggestions = ref([])
+const economicAssessmentHideTimer = ref(null)
 
 function onReportDeptChange(e) {
-  reportDeptIndex.value = Number(e.detail.value)
-  form.value.reportDept = reportDeptOptions[reportDeptIndex.value]
+  const v = Array.isArray(e.detail.value) ? e.detail.value : [0, 0]
+  reportDeptValue.value = [Number(v[0] || 0), Number(v[1] || 0)]
+  applyReportDeptByValue()
+}
+
+function onReportDeptColumnChange(e) {
+  const col = Number(e.detail.column)
+  const val = Number(e.detail.value)
+  const next = [...(reportDeptValue.value || [0, 0])]
+  if (col === 0) {
+    next[0] = val
+    next[1] = 0
+    reportDeptValue.value = next
+    syncReportDeptLv2Options()
+    applyReportDeptByValue()
+    return
+  }
+  if (col === 1) {
+    next[1] = val
+    reportDeptValue.value = next
+    applyReportDeptByValue()
+  }
+}
+
+function syncReportDeptLv2Options() {
+  const p = reportDeptLv1Nodes.value[reportDeptValue.value?.[0] || 0]
+  const list = p ? (reportDeptLv2ByParentId.value?.[p.id] || []) : []
+  reportDeptLv2Options.value = p ? ['', ...list.map(x => x.name)] : ['']
+}
+
+function applyReportDeptByValue() {
+  const p = reportDeptLv1Nodes.value[reportDeptValue.value?.[0] || 0]
+  if (!p) return
+  const children = reportDeptLv2ByParentId.value?.[p.id] || []
+  const rawIdx = Number(reportDeptValue.value?.[1] || 0)
+  const idx = rawIdx > 0 ? (rawIdx - 1) : -1
+  const c = idx > -1 ? children[idx] : null
+
+  if (c) {
+    form.value.reportDept = `${p.name}/${c.name}`
+    form.value.reportDeptId = c.id
+    form.value.reportDeptParentId = p.id
+    return
+  }
+
+  form.value.reportDept = p.name
+  form.value.reportDeptId = p.id
+  form.value.reportDeptParentId = p.parentId || '0'
 }
 
 function onReportMethodChange(e) {
   reportMethodIndex.value = Number(e.detail.value)
-  form.value.reportMethod = reportMethodOptions[reportMethodIndex.value]
+  form.value.reportMethod = reportMethodOptions.value[reportMethodIndex.value] || ''
 }
 
-function onMajorCategoryChange(e) {
+async function onMajorCategoryChange(e) {
   majorCategoryIndex.value = Number(e.detail.value)
-  form.value.majorCategory = majorCategoryOptions[majorCategoryIndex.value]
+  const selectedSector = majorCategoryOptions.value[majorCategoryIndex.value] || ''
+  form.value.majorCategory = selectedSector
+  
+  // 重置违章性质及联动项
+  form.value.violationNature = ''
+  violationNatureItems.value = []
+  violationNatureQuery.value = ''
+  violationNatureSuggestions.value = []
+  form.value.economicAssessment = ''
+  economicAssessmentQuery.value = ''
+  form.value.assessmentResult = ''
+  form.value.clauseContent = ''
+  form.value.ruleId = ''
+
+  if (selectedSector) {
+    try {
+      uni.showLoading({ title: '加载违章性质...' })
+      const list = await getViolationRuleListBySector(selectedSector)
+      const formattedList = list.map(x => {
+        let label = ''
+        if (typeof x === 'string') {
+          label = x
+        } else {
+          const sector = x.sector || ''
+          const type = x.type || ''
+          const subTypeNum = x.subTypeNum || ''
+          if (sector || type || subTypeNum) {
+            label = `${sector}${type}-${subTypeNum}`
+          } else {
+            label = x.ruleName || x.name || x.label || x.violationNature || x.title || '未知'
+          }
+        }
+        // 若 item 是对象，将原本的属性平铺进来；如果是字符串则包装成对象
+        return typeof x === 'string' ? { label, raw: x } : { ...x, label }
+      })
+      violationNatureItems.value = formattedList
+      violationNatureSuggestions.value = formattedList
+    } catch (err) {
+      uni.showToast({ title: err.message || '获取违章性质失败', icon: 'none' })
+    } finally {
+      uni.hideLoading()
+    }
+  }
+}
+
+function onViolationNatureInput(e) {
+  const v = e?.detail?.value ?? violationNatureQuery.value
+  violationNatureQuery.value = v
+  violationNatureOpen.value = true
+  form.value.violationNature = v // 允许用户自由输入，但推荐从下拉框选
+  
+  // 清空联动数据
+  form.value.economicAssessment = ''
+  economicAssessmentQuery.value = ''
+  form.value.assessmentResult = ''
+  form.value.clauseContent = ''
+  form.value.ruleId = ''
+  
+  const kw = v.trim().toLowerCase()
+  if (!kw) {
+    violationNatureSuggestions.value = violationNatureItems.value
+  } else {
+    violationNatureSuggestions.value = violationNatureItems.value.filter(it => 
+      (it.label || '').toLowerCase().includes(kw)
+    )
+  }
+}
+
+function onViolationNatureFocus() {
+  if (violationNatureHideTimer.value) clearTimeout(violationNatureHideTimer.value)
+  violationNatureOpen.value = true
+  
+  const kw = violationNatureQuery.value.trim().toLowerCase()
+  if (!kw) {
+    violationNatureSuggestions.value = violationNatureItems.value
+  } else {
+    violationNatureSuggestions.value = violationNatureItems.value.filter(it => 
+      (it.label || '').toLowerCase().includes(kw)
+    )
+  }
+}
+
+function onViolationNatureBlur() {
+  if (violationNatureHideTimer.value) clearTimeout(violationNatureHideTimer.value)
+  violationNatureHideTimer.value = setTimeout(() => {
+    violationNatureOpen.value = false
+  }, 200)
+}
+
+function selectViolationNature(item) {
+  form.value.violationNature = item.label
+  violationNatureQuery.value = item.label
+  violationNatureOpen.value = false
+  
+  form.value.economicAssessment = item.assessment || ''
+  economicAssessmentQuery.value = item.assessment || ''
+  form.value.assessmentResult = item.assessmentResult || ''
+  form.value.clauseContent = item.content || item.regulationContent || ''
+  form.value.ruleId = item.id || item.ruleId || ''
+}
+
+function onEconomicAssessmentInput(e) {
+  const v = e?.detail?.value ?? economicAssessmentQuery.value
+  economicAssessmentQuery.value = v
+  economicAssessmentOpen.value = true
+  form.value.economicAssessment = v
+  
+  const kw = v.trim().toLowerCase()
+  if (!kw) {
+    economicAssessmentSuggestions.value = economicAssessmentItems.value
+  } else {
+    economicAssessmentSuggestions.value = economicAssessmentItems.value.filter(it => 
+      (it.label || '').toLowerCase().includes(kw)
+    )
+  }
+}
+
+function onEconomicAssessmentFocus() {
+  if (economicAssessmentHideTimer.value) clearTimeout(economicAssessmentHideTimer.value)
+  economicAssessmentOpen.value = true
+  
+  const kw = economicAssessmentQuery.value.trim().toLowerCase()
+  if (!kw) {
+    economicAssessmentSuggestions.value = economicAssessmentItems.value
+  } else {
+    economicAssessmentSuggestions.value = economicAssessmentItems.value.filter(it => 
+      (it.label || '').toLowerCase().includes(kw)
+    )
+  }
+}
+
+function onEconomicAssessmentBlur() {
+  if (economicAssessmentHideTimer.value) clearTimeout(economicAssessmentHideTimer.value)
+  economicAssessmentHideTimer.value = setTimeout(() => {
+    economicAssessmentOpen.value = false
+  }, 200)
+}
+
+function selectEconomicAssessment(item) {
+  form.value.economicAssessment = item.label
+  economicAssessmentQuery.value = item.label
+  economicAssessmentOpen.value = false
 }
 
 function onPostCategoryChange(e) {
   postCategoryIndex.value = Number(e.detail.value)
-  form.value.postCategory = postCategoryOptions[postCategoryIndex.value]
+  form.value.postCategory = postCategoryOptions.value[postCategoryIndex.value] || ''
 }
 
 function onViolationTypeChange(e) {
   violationTypeIndex.value = Number(e.detail.value)
-  form.value.violationType = violationTypeOptions[violationTypeIndex.value]
+  form.value.violationType = violationTypeOptions.value[violationTypeIndex.value] || ''
 }
 
-function onViolationNatureChange(e) {
-  violationNatureIndex.value = Number(e.detail.value)
-  form.value.violationNature = violationNatureOptions[violationNatureIndex.value]
-}
 
-function onDisciplineChange(e) {
-  disciplineIndex.value = Number(e.detail.value)
-  form.value.disciplineAssessment = disciplineOptions[disciplineIndex.value]
-}
 
-function onResultChange(e) {
-  resultIndex.value = Number(e.detail.value)
-  form.value.assessmentResult = resultOptions[resultIndex.value]
-}
+
 
 function onOccurDateChange(e) {
   form.value.occurDate = e.detail.value
@@ -325,12 +575,30 @@ function isNumeric(v) {
   return /^\d+$/.test(String(v || '').trim())
 }
 
+function isAlpha(v) {
+  return /^[A-Za-z]+$/.test(String(v || '').trim())
+}
+
+function isText(v) {
+  const s = String(v || '').trim()
+  if (!s) return false
+  if (/[\u4e00-\u9fff]/.test(s)) return true
+  return !isNumeric(s) && !isAlpha(s)
+}
+
 const responsibleQuery = ref('')
 const responsibleOpen = ref(false)
 const responsibleSuggestions = ref([])
 const responsibleQuerySeq = ref(0)
 const responsibleHideTimer = ref(null)
 const responsibleDetailSeq = ref(0)
+
+const reporterQuery = ref('')
+const reporterOpen = ref(false)
+const reporterSuggestions = ref([])
+const reporterQuerySeq = ref(0)
+const reporterHideTimer = ref(null)
+const reporterDetailSeq = ref(0)
 
 function getSuggestionKey(item) {
   const x = item?.user || item
@@ -339,13 +607,17 @@ function getSuggestionKey(item) {
 
 function formatSuggestionLine1(item) {
   const x = item?.user || item
-  const name = x.nickName || x.userName || x.name || ''
-  const workCardNumber = x.workCardNumber || x.workNumber || x.workId || ''
+  const name = x.nickName || x.userName || x.name || '-'
+  const workCardNumber = x.workCardNumber || x.workNumber || x.workId || '-'
   const deptNames = x.parentDeptNameList
   const groupFromList = Array.isArray(deptNames) ? (deptNames[3] || '') : ''
-  const group = groupFromList || x.group || x.groupName || ''
-  const parts = [group, name, workCardNumber].filter(Boolean)
-  return parts.join(':')
+  const group = x.deptName || groupFromList || x.group || x.groupName || '-'
+  return `${group}:${name}:${workCardNumber}`
+}
+
+function normalizePayNumber(item) {
+  const x = item?.user || item
+  return String(x?.payNumber || x?.salaryNumber || '').trim()
 }
 
 function normalizeWorkCardNumber(item) {
@@ -428,6 +700,38 @@ function syncPoliticalIndex() {
   }
 }
 
+function syncReportMethodIndex() {
+  const idx = reportMethodOptions.value.indexOf(String(form.value.reportMethod || ''))
+  reportMethodIndex.value = idx > -1 ? idx : -1
+  if (reportMethodIndex.value === -1) {
+    form.value.reportMethod = ''
+  }
+}
+
+function syncMajorCategoryIndex() {
+  const idx = majorCategoryOptions.value.indexOf(String(form.value.majorCategory || ''))
+  majorCategoryIndex.value = idx > -1 ? idx : -1
+  if (majorCategoryIndex.value === -1) {
+    form.value.majorCategory = ''
+  }
+}
+
+function syncPostCategoryIndex() {
+  const idx = postCategoryOptions.value.indexOf(String(form.value.postCategory || ''))
+  postCategoryIndex.value = idx > -1 ? idx : -1
+  if (postCategoryIndex.value === -1) {
+    form.value.postCategory = ''
+  }
+}
+
+function syncViolationTypeIndex() {
+  const idx = violationTypeOptions.value.indexOf(String(form.value.violationType || ''))
+  violationTypeIndex.value = idx > -1 ? idx : -1
+  if (violationTypeIndex.value === -1) {
+    form.value.violationType = ''
+  }
+}
+
 function onPostChange(e) {
   postIndex.value = Number(e.detail.value)
   form.value.postName = postOptions.value[postIndex.value] || ''
@@ -442,12 +746,13 @@ function onPoliticalChange(e) {
 
 function applyResponsible(item) {
   const x = item?.user || item
+  const resolvedName = x.nickName || x.userName || x.name || ''
   const workCardNumber = normalizeWorkCardNumber(x)
   if (workCardNumber) {
     form.value.responsibleWorkNumber = workCardNumber
-    responsibleQuery.value = workCardNumber
   }
-  form.value.responsibleName = x.nickName || x.userName || x.name || form.value.responsibleName
+  form.value.responsibleName = resolvedName || form.value.responsibleName
+  responsibleQuery.value = resolvedName || workCardNumber || responsibleQuery.value
   form.value.responsibleDeptName = x.deptName || form.value.responsibleDeptName
   const rawPost = x.postName || x.postType || ''
   const resolvedPost = resolvePostFromAny(rawPost)
@@ -470,6 +775,12 @@ function applyResponsible(item) {
   form.value.workshop = x.workshop || x.workshopName || form.value.workshop
   form.value.team = x.team || x.teamName || form.value.team
   form.value.group = x.group || x.groupName || form.value.group
+  
+  form.value.responsibleUserId = x.userId || x.id || ''
+  form.value.dutyDeptId = x.deptId || x.dutyDeptId || ''
+  form.value.dutyWorkShopId = x.workshopId || ''
+  form.value.dutyGroupId = x.teamId || ''
+  form.value.steeringGroupId = x.groupId || ''
 
   const deptNames = x?.parentDeptNameList
   if (Array.isArray(deptNames) && deptNames.length > 0) {
@@ -483,17 +794,57 @@ function applyResponsible(item) {
   syncPoliticalIndex()
 }
 
+function formatReporterSuggestion(item) {
+  const x = item?.user || item
+  const name = x.nickName || x.userName || x.name || '-'
+  const deptNames = x.parentDeptNameList
+  const groupFromList = Array.isArray(deptNames) ? (deptNames[3] || '') : ''
+  const group = x.deptName || groupFromList || x.group || x.groupName || '-'
+  const workCardNumber = x.workCardNumber || x.workNumber || x.workId || '-'
+  return `${group}:${name}:${workCardNumber}`
+}
+
+function applyReporter(item) {
+  const x = item?.user || item
+  const resolvedName = String(x.nickName || x.userName || x.name || '').trim()
+  const workCardNumber = normalizeWorkCardNumber(x)
+  const payNumber = normalizePayNumber(x)
+
+  if (resolvedName) {
+    form.value.reporterName = resolvedName
+    reporterQuery.value = resolvedName
+  }
+  if (workCardNumber) {
+    form.value.reporterWorkNumber = workCardNumber
+  }
+  if (payNumber) {
+    form.value.reporterSalaryNumber = payNumber
+  }
+}
+
 async function queryResponsible(v) {
   const raw = String(v || '').trim()
-  if (!raw || !isNumeric(raw)) {
+  if (!raw) {
     responsibleSuggestions.value = []
     return
   }
 
   const seq = ++responsibleQuerySeq.value
   try {
-    console.log('【Responsible Search】查询责任人工号:', raw)
-    const list = await searchUsersByWorkCardNumber(raw)
+    let list = []
+    if (isNumeric(raw)) {
+      console.log('【Responsible Search】按工号查询:', raw)
+      list = await searchUsersByWorkCardNumber(raw)
+    } else if (isAlpha(raw)) {
+      console.log('【Responsible Search】按nickNamePy查询:', raw)
+      list = await searchUsersByNickNamePy(raw)
+    } else if (isText(raw)) {
+      console.log('【Responsible Search】按nickName查询:', raw)
+      list = await searchUsersByNickName(raw)
+    } else {
+      responsibleSuggestions.value = []
+      return
+    }
     if (seq !== responsibleQuerySeq.value) return
 
     const normalized = (list || []).filter(Boolean)
@@ -502,6 +853,40 @@ async function queryResponsible(v) {
   } catch (e) {
     if (seq !== responsibleQuerySeq.value) return
     responsibleSuggestions.value = []
+  }
+}
+
+async function queryReporter(v) {
+  const raw = String(v || '').trim()
+  if (!raw) {
+    reporterSuggestions.value = []
+    return
+  }
+
+  const seq = ++reporterQuerySeq.value
+  try {
+    let list = []
+    if (isNumeric(raw)) {
+      console.log('【Reporter Search】按工号查询:', raw)
+      list = await searchUsersByWorkCardNumber(raw)
+    } else if (isAlpha(raw)) {
+      console.log('【Reporter Search】按nickNamePy查询:', raw)
+      list = await searchUsersByNickNamePy(raw)
+    } else if (isText(raw)) {
+      console.log('【Reporter Search】按nickName查询:', raw)
+      list = await searchUsersByNickName(raw)
+    } else {
+      reporterSuggestions.value = []
+      return
+    }
+    if (seq !== reporterQuerySeq.value) return
+
+    const normalized = (list || []).filter(Boolean)
+    reporterSuggestions.value = normalized
+    console.log('【Reporter Search】候选数量:', normalized.length)
+  } catch (e) {
+    if (seq !== reporterQuerySeq.value) return
+    reporterSuggestions.value = []
   }
 }
 
@@ -529,6 +914,31 @@ function onResponsibleBlur() {
   }, 200)
 }
 
+function onReporterInput(e) {
+  const v = e?.detail?.value ?? reporterQuery.value
+  reporterQuery.value = v
+  form.value.reporterName = v
+  reporterOpen.value = true
+  queryReporter(v)
+}
+
+function onReporterConfirm() {
+  reporterOpen.value = true
+  queryReporter(reporterQuery.value)
+}
+
+function onReporterFocus() {
+  if (reporterHideTimer.value) clearTimeout(reporterHideTimer.value)
+  reporterOpen.value = true
+}
+
+function onReporterBlur() {
+  if (reporterHideTimer.value) clearTimeout(reporterHideTimer.value)
+  reporterHideTimer.value = setTimeout(() => {
+    reporterOpen.value = false
+  }, 200)
+}
+
 async function selectResponsible(item) {
   console.log('【Responsible Search】选择候选:', formatSuggestionLine1(item))
   applyResponsible(item)
@@ -549,6 +959,26 @@ async function selectResponsible(item) {
   }
 }
 
+async function selectReporter(item) {
+  console.log('【Reporter Search】选择候选:', formatReporterSuggestion(item))
+  applyReporter(item)
+  reporterOpen.value = false
+
+  const workCardNumber = normalizeWorkCardNumber(item)
+  if (!workCardNumber) return
+
+  const seq = ++reporterDetailSeq.value
+  try {
+    console.log('【Reporter Search】补全信息查询:', workCardNumber)
+    const detail = await getUserDetailByWorkCardNumber(workCardNumber)
+    if (seq !== reporterDetailSeq.value) return
+    if (detail) applyReporter(detail)
+  } catch (e) {
+    if (seq !== reporterDetailSeq.value) return
+    uni.showToast({ title: e?.message || '查询失败', icon: 'none' })
+  }
+}
+
 onMounted(() => {
   const cached = uni.getStorageSync('user_info')
   const user = cached?.user || {}
@@ -558,24 +988,92 @@ onMounted(() => {
   if (!form.value.reporterWorkNumber) {
     form.value.reporterWorkNumber = user.workNumber || user.workCardNumber || ''
   }
+  if (!form.value.reporterSalaryNumber) {
+    form.value.reporterSalaryNumber = user.payNumber || user.salaryNumber || ''
+  }
   if (!form.value.reportDept) {
     const dept = user.deptName || ''
     if (dept) {
-      const idx = reportDeptOptions.indexOf(dept)
-      if (idx > -1) {
-        reportDeptIndex.value = idx
-      }
       form.value.reportDept = dept
     }
   }
   responsibleQuery.value = ''
+  reporterQuery.value = form.value.reporterName || ''
 
   Promise.resolve()
     .then(() => ensureDict('zgglxt_xgw', DICT_POST_KEY, (v) => (postItems.value = v), (v) => (postOptions.value = v)))
     .then(() => ensureDict('zgglxt_zzmm', DICT_POLITICAL_KEY, (v) => (politicalItems.value = v), (v) => (politicalOptions.value = v)))
+    .then(() => ensureDict('safety_violation_report_type', DICT_REPORT_METHOD_KEY, (v) => (reportMethodItems.value = v), (v) => (reportMethodOptions.value = v)))
+    .then(() => ensureDict('safety_post_type', DICT_POST_CATEGORY_KEY, (v) => (postCategoryItems.value = v), (v) => (postCategoryOptions.value = v)))
+    .then(() => ensureDict('safety_violation_post_type', DICT_MAJOR_CATEGORY_KEY, (v) => (majorCategoryItems.value = v), (v) => (majorCategoryOptions.value = v)))
+    .then(() => ensureDict('safety_violation_type', DICT_VIOLATION_TYPE_KEY, (v) => (violationTypeItems.value = v), (v) => (violationTypeOptions.value = v)))
+    .then(() => ensureDict('safety_violation_assessment', DICT_ECONOMIC_ASSESSMENT_KEY, (v) => (economicAssessmentItems.value = v), () => {}))
+    .then(async () => {
+      const parentIds = user.parentDeptIdList
+      const depotId = Array.isArray(parentIds) ? parentIds[0] : (user.parentDeptId || '')
+      if (!depotId) return
+
+      const list = await getReportDeptListByDepotId(depotId)
+      const nodes = (list || [])
+        .filter(Boolean)
+        .map((x) => ({
+          id: String(x.deptId ?? x.id ?? x.value ?? '').trim(),
+          parentId: String(x.parentId ?? x.parentDeptId ?? '').trim(),
+          name: String(x.deptName ?? x.name ?? x.label ?? '').trim(),
+          orderNum: Number(x.orderNum ?? 0)
+        }))
+        .filter(it => it.id && it.name)
+
+      reportDeptNodes.value = nodes
+      const lv1 = nodes
+        .filter(n => !n.parentId || n.parentId === '0')
+        .sort((a, b) => a.orderNum - b.orderNum)
+      reportDeptLv1Nodes.value = lv1
+      reportDeptLv1Options.value = lv1.map(x => x.name)
+
+      const byParent = {}
+      for (const n of nodes) {
+        const pid = n.parentId
+        if (!pid || pid === '0') continue
+        if (!byParent[pid]) byParent[pid] = []
+        byParent[pid].push(n)
+      }
+      for (const k of Object.keys(byParent)) {
+        byParent[k].sort((a, b) => a.orderNum - b.orderNum)
+      }
+      reportDeptLv2ByParentId.value = byParent
+
+      const current = String(form.value.reportDept || '').trim()
+      const currentLeafName = current.includes('/') ? current.split('/').filter(Boolean).slice(-1)[0] : current
+      let initLv1 = 0
+      let initLv2 = 0
+
+      if (currentLeafName) {
+        const found = nodes.find(n => n.name === currentLeafName)
+        if (found) {
+          if (!found.parentId || found.parentId === '0') {
+            initLv1 = Math.max(0, lv1.findIndex(p => p.id === found.id))
+            initLv2 = 0
+          } else {
+            initLv1 = Math.max(0, lv1.findIndex(p => p.id === found.parentId))
+            const children = byParent[found.parentId] || []
+            const idx2 = children.findIndex(c => c.id === found.id)
+            initLv2 = idx2 > -1 ? (idx2 + 1) : 0
+          }
+        }
+      }
+
+      reportDeptValue.value = [initLv1, initLv2]
+      syncReportDeptLv2Options()
+      applyReportDeptByValue()
+    })
     .then(() => {
       syncPostIndex()
       syncPoliticalIndex()
+      syncReportMethodIndex()
+      syncPostCategoryIndex()
+      syncMajorCategoryIndex()
+      syncViolationTypeIndex()
     })
     .catch(() => {})
 })
@@ -607,7 +1105,6 @@ async function handleSubmit() {
   if (!form.value.violationSituation) return uni.showToast({ title: '请输入违章情况', icon: 'none' })
   if (!form.value.reportDept) return uni.showToast({ title: '请选择提报部门', icon: 'none' })
   if (!form.value.reportMethod) return uni.showToast({ title: '请选择提报方式', icon: 'none' })
-  if (!form.value.disciplineAssessment) return uni.showToast({ title: '请选择纪律考核', icon: 'none' })
 
   if (submitting.value) return
   submitting.value = true
