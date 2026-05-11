@@ -1,13 +1,26 @@
 {
   "pages": [
     {
+      "path": "pages/home/home",
+      "style": {
+        "navigationBarTitleText": "首页"
+      }
+    },
+    {
+      "path": "pages/self/self",
+      "style": {
+        "navigationBarTitleText": "我的违章记录",
+        "enablePullDownRefresh": true
+      }
+    },
+    {
       "path": "pages/login/login",
       "style": {
         "navigationStyle": "custom"
       }
     },
     {
-      "path": "pages/home/home",
+      "path": "pages/list/list",
       "style": {
         "navigationBarTitleText": "违章列表"
       }

@@ -16,20 +16,8 @@
         <text class="info-value">{{ userInfo.deptName || '-' }}</text>
       </view>
       <view class="info-row">
-        <text class="info-label">工号</text>
-        <text class="info-value">{{ userInfo.workNumber || userInfo.workCardNumber || '-' }}</text>
-      </view>
-      <view class="info-row">
-        <text class="info-label">岗位</text>
-        <text class="info-value">{{ userInfo.postType || userInfo.postName || '-' }}</text>
-      </view>
-      <view class="info-row">
-        <text class="info-label">登录IP</text>
-        <text class="info-value">{{ userInfo.loginIp || '-' }}</text>
-      </view>
-      <view class="info-row">
-        <text class="info-label">登录时间</text>
-        <text class="info-value">{{ userInfo.loginDate || '-' }}</text>
+        <text class="info-label">职务</text>
+        <text class="info-value">{{ getPostLabel(userInfo.postName || userInfo.postType) }}</text>
       </view>
       <view class="info-row">
         <text class="info-label">角色</text>
@@ -42,21 +30,12 @@
     </view>
 
     <view class="menu-list mt">
-      <view class="menu-item" @click="goHome">
-        <text class="menu-text">违章列表</text>
-        <text class="arrow">></text>
-      </view>
-      <view class="menu-item" @click="goSubmit">
-        <text class="menu-text">新增违章违纪</text>
-        <text class="arrow">></text>
-      </view>
       <view class="menu-item logout" @click="logout">
         <text class="menu-text">退出登录</text>
       </view>
     </view>
   </view>
 </template>
-
 <script setup>
 import { ref, computed } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
@@ -131,25 +110,26 @@ function applyUserInfo(data) {
   permissions.value = data?.permissions || []
 }
 
-function goHome() {
-  uni.reLaunch({ url: '/pages/home/home' })
-}
-
-function goSubmit() {
-  uni.navigateTo({ url: '/pages/submit/submit' })
+function getPostLabel(code) {
+  if (!code) return '-'
+  const dict = uni.getStorageSync('dict_zgglxt_xgw') || []
+  const match = dict.find(x => String(x.dictValue) === String(code) || String(x.value) === String(code))
+  return match ? (match.dictLabel || match.label) : code
 }
 
 function logout() {
   clearToken()
   uni.reLaunch({ url: '/pages/login/login' })
 }
+
 </script>
 
 <style>
 .page {
-  padding: 24rpx;
   background-color: #f5f7fa;
   min-height: 100vh;
+  padding: 32rpx;
+  box-sizing: border-box;
 }
 
 .header {
@@ -245,9 +225,36 @@ function logout() {
   border-bottom: none;
 }
 
+.row {
+  display: flex;
+  align-items: center;
+}
+
+.icon-box {
+  width: 64rpx;
+  height: 64rpx;
+  border-radius: 12rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 24rpx;
+}
+
+.icon-text {
+  font-size: 32rpx;
+  color: #fff;
+  font-weight: bold;
+}
+
+.menu-title {
+  font-size: 30rpx;
+  color: #333;
+}
+
 .menu-text {
   font-size: 30rpx;
   color: #333;
+  flex: 1;
 }
 
 .arrow {
@@ -260,5 +267,8 @@ function logout() {
 }
 .logout .menu-text {
   color: #ff4d4f;
+  text-align: center;
+  width: 100%;
 }
+
 </style>

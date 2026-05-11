@@ -122,6 +122,7 @@
     <view class="empty" v-else>
       <text>加载中或未找到该记录</text>
     </view>
+
   </view>
 </template>
 
@@ -149,7 +150,7 @@ function getPoliticalText(code) {
 }
 
 onLoad(async (options) => {
-  if (options.from === 'home') {
+  if (options.from === 'home' || options.from === 'self') {
     try {
       const data = uni.getStorageSync('current_violation_detail')
       if (data) {
@@ -233,7 +234,7 @@ function previewImage(idx) {
 }
 
 .title {
-  font-size: 36rpx;
+  font-size: 34rpx;
   font-weight: bold;
   color: #333;
 }

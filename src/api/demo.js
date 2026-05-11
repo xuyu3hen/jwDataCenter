@@ -81,6 +81,15 @@ export async function getViolations(params = { pageNum: 1, pageSize: 10 }) {
   return parseListResponse(res)
 }
 
+export async function getSelfViolations(params = { workNumber: '' }) {
+  const res = await request({
+    url: '/safety/violation/select/self',
+    method: 'GET',
+    data: params
+  })
+  return parseListResponse(res)
+}
+
 export async function addViolation(payload) {
   if (!payload?.responsibleName) throw new Error('请填写责任人')
   if (!payload?.occurDate) throw new Error('请选择发生日期')
@@ -179,6 +188,69 @@ export async function getViolationDetail(id) {
   }
   
   return resData?.data ?? resData
+}
+
+export async function appealViolation(id, message) {
+  // 和确认接口一样，后端期望接收的是一个 Violation 实体对象
+  const payload = {
+    id: id,
+    message: message || ''
+  }
+  
+  console.log('【Appeal Request】开始调用申诉违章违纪接口: POST /safety/violation/unConfirm')
+  console.log('【Appeal Request】请求参数:', JSON.stringify(payload))
+  
+  const res = await request({
+    url: '/safety/violation/unConfirm',
+    method: 'POST',
+    data: payload,
+    header: {
+      'Content-Type': 'application/json'
+    }
+  })
+  
+  console.log('【Appeal Response】申诉接口返回结果:', res)
+  
+  if (res?.statusCode !== 200) {
+    throw new Error(`申诉失败（${res?.statusCode || '未知状态码'}）`)
+  }
+  
+  const resData = res?.data || {}
+  if (resData.code && resData.code !== 200 && resData.code !== 0) {
+    throw new Error(resData.msg || resData.message || `申诉失败（${resData.code}）`)
+  }
+  
+  return { ok: true, data: resData }
+}
+export async function confirmViolation(id) {
+  // 根据后端的错误提示 "Cannot deserialize value of type Violation from Array value"，
+  // 后端接口期望接收的是一个 Violation 实体对象，而不是单纯的 ID 数组。
+  // 所以这里我们包装成一个包含 id 的对象来发送请求。
+  const payload = { id }
+  console.log('【Confirm Request】开始调用确认违章违纪接口: POST /safety/violation/confirm')
+  console.log('【Confirm Request】请求参数:', JSON.stringify(payload))
+  
+  const res = await request({
+    url: '/safety/violation/confirm',
+    method: 'POST',
+    data: payload,
+    header: {
+      'Content-Type': 'application/json'
+    }
+  })
+  
+  console.log('【Confirm Response】确认接口返回结果:', res)
+  
+  if (res?.statusCode !== 200) {
+    throw new Error(`确认失败（${res?.statusCode || '未知状态码'}）`)
+  }
+  
+  const resData = res?.data || {}
+  if (resData.code && resData.code !== 200 && resData.code !== 0) {
+    throw new Error(resData.msg || resData.message || `确认失败（${resData.code}）`)
+  }
+  
+  return { ok: true, data: resData }
 }
 
 export async function getUserInfo() {
@@ -296,6 +368,7 @@ async function parseListResponse(res) {
   const payload = data?.data ?? data
   if (Array.isArray(payload)) return payload
   if (Array.isArray(payload?.rows)) return payload.rows
+  if (Array.isArray(payload?.records)) return payload.records
   if (Array.isArray(payload?.list)) return payload.list
   if (payload && typeof payload === 'object') return [payload]
   return []

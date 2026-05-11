@@ -252,6 +252,7 @@
         {{ submitting ? '提交中...' : '提交' }}
       </button>
     </view>
+
   </view>
 </template>
 
@@ -1125,7 +1126,7 @@ async function handleSubmit() {
 
 <style>
 .page {
-  padding: 24rpx;
+  padding: 32rpx;
   background-color: #f5f7fa;
   min-height: 100vh;
 }
@@ -1262,13 +1263,13 @@ async function handleSubmit() {
 }
 
 .btn {
-  margin-top: 48rpx;
   background: #1677ff;
   color: #fff;
-  font-size: 32rpx;
   border-radius: 8rpx;
+  font-size: 32rpx;
+  margin-top: 16rpx;
 }
 .btn[disabled] {
-  opacity: 0.7;
+  opacity: 0.6;
 }
 </style>
