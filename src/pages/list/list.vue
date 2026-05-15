@@ -5,25 +5,23 @@
       <button class="link" @click="logout">退出</button>
     </view>
 
-    <view class="card mt" v-if="mode === 'month'">
+    <view class="card mt">
       <view class="row between">
         <view class="row">
           <text style="font-size: 28rpx; color: #666; margin-right: 16rpx;">统计月份</text>
           <picker mode="date" fields="month" :value="statTime" @change="onMonthChange">
             <view style="font-size: 28rpx; color: #333; background: #f5f7fa; padding: 10rpx 24rpx; border-radius: 8rpx; min-width: 160rpx; text-align: center;">
-              {{ statTime || '请选择' }}
+              {{ statTime || '请选择(为空查全部)' }}
             </view>
           </picker>
+          <button v-if="statTime" class="btn small" style="margin-left: 10rpx; font-size: 24rpx; padding: 0 16rpx; line-height: 2; color: #999; background: #eee;" @click.stop="clearMonth">清除</button>
         </view>
         <button class="btn primary" style="margin: 0; padding: 0 32rpx; font-size: 26rpx; line-height: 2.2;" @click="refresh">查询</button>
       </view>
     </view>
 
     <view class="card mt">
-      <view class="row between">
-        <view class="card-title">{{ mode === 'month' ? '月度违章记录' : '全部违章记录' }}</view>
-        <button v-if="mode !== 'month'" class="btn primary" style="margin: 0; padding: 0 32rpx; font-size: 26rpx; line-height: 2.2;" @click="refresh">刷新</button>
-      </view>
+      <view class="card-title">违章记录</view>
 
       <view v-if="violations.length === 0" class="empty">暂无违章记录</view>
       <view v-for="item in violations" :key="item.id" class="item" @click="goDetail(item)">
@@ -32,7 +30,10 @@
             <text>{{ getTitle(item) }}</text>
             <text class="item-post" v-if="getPostLabel(item)">{{ getPostLabel(item) }}</text>
           </view>
-          <view class="item-level" :class="getLevelClass(getTag(item))">{{ getTag(item) }}</view>
+          <view class="row">
+            <text class="item-status" :class="getStatusClass(item.statusId)">{{ getStatusLabel(item.statusId) }}</text>
+            <view class="item-level" :class="getLevelClass(getTag(item))" style="margin-left: 12rpx;">{{ getTag(item) }}</view>
+          </view>
         </view>
         <view class="item-meta">{{ getMeta(item) }}</view>
         <view class="item-desc">{{ getDesc(item) }}</view>
@@ -59,14 +60,19 @@ onLoad((options) => {
   if (options.mode) {
     mode.value = options.mode
   }
+  // 默认如果没传或者传all，就把时间置空，否则带上当前月
   if (mode.value === 'month') {
     statTime.value = currentMonth
-    uni.setNavigationBarTitle({ title: '月度违章记录' })
   } else {
     statTime.value = ''
-    uni.setNavigationBarTitle({ title: '全部违章记录' })
   }
+  uni.setNavigationBarTitle({ title: '违章查询' })
 })
+
+function clearMonth() {
+  statTime.value = ''
+  refresh()
+}
 
 function onMonthChange(e) {
   statTime.value = e.detail.value
@@ -85,8 +91,7 @@ function getQueryParams() {
     pageNum: 1, 
     pageSize: 10
   }
-  if (mode.value === 'month' && statTime.value) {
-    params.statTime = statTime.value
+  if (statTime.value) {
     params.staTime = statTime.value
   }
   return params
@@ -189,6 +194,27 @@ function getDesc(item) {
 
 function getTag(item) {
   return item.regulation || item.violationNature || item.level || '未分类'
+}
+
+function getStatusLabel(statusId) {
+  const map = {
+    0: '审核退回(申诉成功)',
+    1: '已提交',
+    2: '归档',
+    3: '已确认',
+    4: '申诉中',
+    5: '申诉失败',
+    6: '分析中'
+  }
+  if (statusId == null) return '未知状态'
+  return map[statusId] || `未知状态(${statusId})`
+}
+
+function getStatusClass(statusId) {
+  const sid = String(statusId)
+  if (sid === '3') return 'status-confirmed'
+  if (sid === '0' || sid === '5') return 'status-error'
+  return 'status-normal'
 }
 
 function getLevelClass(level) {
@@ -325,6 +351,14 @@ onUnload(() => {
 .level-high { background: #ffebee; color: #ff4d4f; }
 .level-medium { background: #fff8e6; color: #faad14; }
 .level-low { background: #e6f7ff; color: #1677ff; }
+
+.item-status {
+  font-size: 24rpx;
+  font-weight: bold;
+}
+.status-confirmed { color: #52c41a; }
+.status-error { color: #ff4d4f; }
+.status-normal { color: #fa8c16; }
 
 .item-meta {
   margin-top: 10rpx;

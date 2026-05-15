@@ -236,13 +236,13 @@
           </view>
 
           <view class="field">
-            <text class="label">现场照片 (最多3张)</text>
+            <text class="label">现场照片</text>
         <view class="photo-list">
           <view class="photo-item" v-for="(img, idx) in form.photos" :key="idx">
-            <image :src="img" class="photo" mode="aspectFill" @click="previewImage(idx)" />
+            <image :src="img.url || img" class="photo" mode="aspectFill" @click="previewImage(idx)" />
             <view class="photo-del" @click="removePhoto(idx)">×</view>
           </view>
-          <view class="photo-add" v-if="form.photos.length < 3" @click="chooseImage">
+          <view class="photo-add" @click="chooseImage">
             <text class="add-icon">+</text>
           </view>
         </view>
@@ -258,7 +258,7 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import { addViolation, searchUsersByWorkCardNumber, searchUsersByNickNamePy, searchUsersByNickName, getUserDetailByWorkCardNumber, getDictData, getReportDeptListByDepotId, getViolationRuleListBySector } from '../../api/demo'
+import { addViolation, searchUsersByWorkCardNumber, searchUsersByNickNamePy, searchUsersByNickName, getUserDetailByWorkCardNumber, getDictData, getReportDeptListByDepotId, getViolationRuleListBySector, uploadFile } from '../../api/demo'
 
 const form = ref({
   responsibleName: '',
@@ -1081,17 +1081,37 @@ onMounted(() => {
 
 function chooseImage() {
   uni.chooseImage({
-    count: 3 - form.value.photos.length,
+    count: 9, // 取消最多3张的限制，每次最多可选9张
     sizeType: ['compressed'],
-    success: (res) => {
-      form.value.photos.push(...res.tempFilePaths)
+    success: async (res) => {
+      uni.showLoading({ title: '上传中...' })
+      try {
+        for (const filePath of res.tempFilePaths) {
+          const uploadRes = await uploadFile(filePath)
+          // uploadRes is an array according to the screenshot: data: [{fileId, fileName, src...}]
+          const fileData = Array.isArray(uploadRes) ? uploadRes[0] : uploadRes
+          if (fileData) {
+            form.value.photos.push({
+              name: fileData.fileName || fileData.name,
+              url: fileData.src || fileData.url,
+              fileId: fileData.fileId || fileData.id
+            })
+          }
+        }
+        uni.hideLoading()
+        uni.showToast({ title: '上传成功', icon: 'success' })
+      } catch (e) {
+        uni.hideLoading()
+        uni.showToast({ title: e.message || '上传失败', icon: 'none' })
+      }
     }
   })
 }
 
 function previewImage(idx) {
+  const urls = form.value.photos.map(p => p.url || p)
   uni.previewImage({
-    urls: form.value.photos,
+    urls: urls,
     current: idx
   })
 }
@@ -1111,7 +1131,14 @@ async function handleSubmit() {
   submitting.value = true
   
   try {
-    await addViolation(form.value)
+    const payload = { ...form.value }
+    if (payload.photos && payload.photos.length > 0) {
+      payload.attachment = JSON.stringify(payload.photos)
+    } else {
+      payload.attachment = ''
+    }
+
+    await addViolation(payload)
     uni.showToast({ title: '提交成功', icon: 'success' })
     setTimeout(() => {
       uni.navigateBack()

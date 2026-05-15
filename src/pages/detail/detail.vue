@@ -154,21 +154,22 @@ onLoad(async (options) => {
     try {
       const data = uni.getStorageSync('current_violation_detail')
       if (data) {
-        violation.value = data
+        violation.value = processViolationData(data)
       }
     } catch (e) {
       uni.showToast({ title: '数据读取失败', icon: 'none' })
     }
   } else if (options.data) {
     try {
-      violation.value = JSON.parse(decodeURIComponent(options.data))
+      violation.value = processViolationData(JSON.parse(decodeURIComponent(options.data)))
     } catch (e) {
       uni.showToast({ title: '数据解析失败', icon: 'none' })
     }
   } else if (options.id) {
     try {
       uni.showLoading({ title: '加载中...' })
-      violation.value = await getViolationDetail(options.id)
+      const data = await getViolationDetail(options.id)
+      violation.value = processViolationData(data)
     } catch (e) {
       uni.showToast({ title: e.message || '加载失败', icon: 'none' })
     } finally {
@@ -176,6 +177,21 @@ onLoad(async (options) => {
     }
   }
 })
+
+function processViolationData(data) {
+  if (!data) return data
+  if (data.attachment && typeof data.attachment === 'string') {
+    try {
+      const parsed = JSON.parse(data.attachment)
+      if (Array.isArray(parsed)) {
+        data.photos = parsed.map(item => item.url || item.src || item)
+      }
+    } catch (e) {
+      console.warn('Failed to parse attachment JSON', e)
+    }
+  }
+  return data
+}
 
 function getLevelClass(level) {
   if (level === '严重违章') return 'level-high'

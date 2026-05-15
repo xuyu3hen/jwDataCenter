@@ -1,5 +1,5 @@
-import { setToken, setClientId } from '../utils/auth'
-import { request } from '../utils/request'
+import { setToken, setClientId, getToken, getClientId } from '../utils/auth'
+import { request, getBaseUrl } from '../utils/request'
 
 const VIOLATIONS_KEY = 'demo_violations'
 
@@ -90,6 +90,53 @@ export async function getSelfViolations(params = { workNumber: '' }) {
   return parseListResponse(res)
 }
 
+export async function getAppealPendingViolations(params = { pageNum: 1, pageSize: 20 }) {
+  const res = await request({
+    url: '/safety/violation/select/page',
+    method: 'GET',
+    // 注意：如果是多个状态，后端接口如果支持数组可以直接传，不支持的话可能需要逗号分隔或者多次查询。
+    // 假设后端目前这个接口只接受单一状态查询，我们可以把参数去掉，通过前端过滤出 statusId === 4 (申诉中) 和 statusId === 6 (分析中) 的数据。
+    // 如果后端支持，应该传 statusId: '4,6' 或者不传 statusId 让后端返回所有再由前端过滤。这里我们暂且不传 statusId，拿全量来过滤
+    data: { ...params }
+  })
+  const list = await parseListResponse(res)
+  // 过滤出 申诉中(4) 和 分析中(6) 的记录
+  return (list || []).filter(x => {
+    const sid = String(x?.statusId)
+    return sid === '4' || sid === '6'
+  })
+}
+
+export async function auditAppealViolation({ id, approved, message }) {
+  const url = approved ? '/safety/violation/return' : '/safety/violation/unReturn'
+  const payload = approved ? { id } : { id, message: message || '' }
+
+  console.log(`【Appeal Audit Request】开始调用申诉审核接口: POST ${url}`)
+  console.log('【Appeal Audit Request】请求参数:', JSON.stringify(payload))
+
+  const res = await request({
+    url: url,
+    method: 'POST',
+    data: payload,
+    header: {
+      'Content-Type': 'application/json'
+    }
+  })
+
+  console.log('【Appeal Audit Response】申诉审核接口返回结果:', res)
+
+  if (res?.statusCode !== 200) {
+    throw new Error(`审核失败（${res?.statusCode || '未知状态码'}）`)
+  }
+
+  const resData = res?.data || {}
+  if (resData.code && resData.code !== 200 && resData.code !== 0) {
+    throw new Error(resData.msg || resData.message || `审核失败（${resData.code}）`)
+  }
+
+  return { ok: true, data: resData }
+}
+
 export async function addViolation(payload) {
   if (!payload?.responsibleName) throw new Error('请填写责任人')
   if (!payload?.occurDate) throw new Error('请选择发生日期')
@@ -150,7 +197,8 @@ export async function addViolation(payload) {
     steeringGroupId: payload.steeringGroupId || '',
     
     type: payload.violationType,
-    workCardNumber: payload.responsibleWorkNumber
+    workCardNumber: payload.responsibleWorkNumber,
+    attachment: payload.attachment
   }
 
   const res = await request({
@@ -172,6 +220,39 @@ export async function addViolation(payload) {
   return { ok: true, data: resData }
 }
 
+export async function uploadFile(filePath) {
+  const baseUrl = getBaseUrl()
+  const token = getToken()
+  const clientId = getClientId()
+
+  return new Promise((resolve, reject) => {
+    uni.uploadFile({
+      url: `${baseUrl}/file/upload`,
+      filePath: filePath,
+      name: 'file',
+      header: {
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...(clientId ? { ClientId: clientId } : {})
+      },
+      success: (uploadFileRes) => {
+        try {
+          const res = JSON.parse(uploadFileRes.data)
+          if (res.code === 200 || res.code === 0) {
+            resolve(res.data)
+          } else {
+            reject(new Error(res.msg || res.message || '上传失败'))
+          }
+        } catch (e) {
+          reject(e)
+        }
+      },
+      fail: (err) => {
+        reject(err)
+      }
+    })
+  })
+}
+
 export async function getViolationDetail(id) {
   const res = await request({
     url: `/safety/violation/${id}`,
@@ -188,6 +269,38 @@ export async function getViolationDetail(id) {
   }
   
   return resData?.data ?? resData
+}
+
+export async function fixViolation(id, message) {
+  const payload = {
+    id: id,
+    message: message || ''
+  }
+  
+  console.log('【Analyze Request】开始调用分析接口: POST /safety/violation/fx')
+  console.log('【Analyze Request】请求参数:', JSON.stringify(payload))
+  
+  const res = await request({
+    url: '/safety/violation/fx',
+    method: 'POST',
+    data: payload,
+    header: {
+      'Content-Type': 'application/json'
+    }
+  })
+  
+  console.log('【Analyze Response】分析接口返回结果:', res)
+  
+  if (res?.statusCode !== 200) {
+    throw new Error(`分析失败（${res?.statusCode || '未知状态码'}）`)
+  }
+  
+  const resData = res?.data || {}
+  if (resData.code && resData.code !== 200 && resData.code !== 0) {
+    throw new Error(resData.msg || resData.message || `分析失败（${resData.code}）`)
+  }
+  
+  return { ok: true, data: resData }
 }
 
 export async function appealViolation(id, message) {

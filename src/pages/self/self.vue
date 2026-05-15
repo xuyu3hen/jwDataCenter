@@ -21,7 +21,13 @@
           <template v-if="String(item.statusId) === '1'">
             <button class="btn appeal-btn" @click.stop="handleAppeal(item)">申诉</button>
             <button class="btn confirm-btn" :disabled="confirmingId === item.id" @click.stop="handleConfirm(item)">
-              {{ confirmingId === item.id ? '确认中...' : '确认' }}
+              {{ confirmingId === item.id ? '处理中...' : '确认' }}
+            </button>
+          </template>
+          <template v-if="String(item.statusId) === '5'">
+            <button class="btn analyze-btn" @click.stop="handleAnalyze(item)">分析</button>
+            <button class="btn confirm-btn" :disabled="confirmingId === item.id" @click.stop="handleAgree(item)">
+              {{ confirmingId === item.id ? '处理中...' : '同意' }}
             </button>
           </template>
         </view>
@@ -35,7 +41,7 @@
 import { onShow, onHide, onUnload, onPullDownRefresh } from '@dcloudio/uni-app'
 import { ref } from 'vue'
 import { clearToken, getToken } from '../../utils/auth'
-import { getSelfViolations, confirmViolation, appealViolation } from '../../api/demo'
+import { getSelfViolations, confirmViolation, appealViolation, fixViolation } from '../../api/demo'
 
 const violations = ref([])
 const confirmingId = ref(null)
@@ -158,6 +164,58 @@ async function handleConfirm(item) {
           uni.showToast({ title: e.message || '确认失败', icon: 'none' })
         } finally {
           confirmingId.value = null
+        }
+      }
+    }
+  })
+}
+
+async function handleAgree(item) {
+  if (!item || !item.id) return
+  if (confirmingId.value) return
+  
+  uni.showModal({
+    title: '提示',
+    content: '确定要同意该违章违纪记录吗？',
+    success: async (res) => {
+      if (res.confirm) {
+        confirmingId.value = item.id
+        try {
+          await confirmViolation(item.id)
+          uni.showToast({ title: '同意成功', icon: 'success' })
+          await refresh()
+        } catch (e) {
+          uni.showToast({ title: e.message || '同意失败', icon: 'none' })
+        } finally {
+          confirmingId.value = null
+        }
+      }
+    }
+  })
+}
+
+function handleAnalyze(item) {
+  if (!item || !item.id) return
+  uni.showModal({
+    title: '分析',
+    editable: true,
+    placeholderText: '请输入分析内容',
+    success: async (res) => {
+      if (res.confirm) {
+        if (!res.content) {
+          uni.showToast({ title: '请输入分析内容', icon: 'none' })
+          return
+        }
+        
+        try {
+          uni.showLoading({ title: '提交分析中...' })
+          await fixViolation(item.id, res.content)
+          uni.hideLoading()
+          uni.showToast({ title: '分析成功', icon: 'success' })
+          await refresh()
+        } catch (e) {
+          uni.hideLoading()
+          uni.showToast({ title: e.message || '分析失败', icon: 'none' })
         }
       }
     }
@@ -356,7 +414,7 @@ onPullDownRefresh(async () => {
   gap: 16rpx;
 }
 
-.confirm-btn, .appeal-btn, .view-btn {
+.confirm-btn, .appeal-btn, .view-btn, .analyze-btn {
   margin: 0;
   border-radius: 8rpx;
   font-size: 26rpx;
@@ -374,6 +432,11 @@ onPullDownRefresh(async () => {
 
 .appeal-btn {
   background: #ff4d4f;
+  color: #fff;
+}
+
+.analyze-btn {
+  background: #fa8c16;
   color: #fff;
 }
 

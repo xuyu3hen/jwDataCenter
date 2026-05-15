@@ -42,6 +42,19 @@
       "style": {
         "navigationBarTitleText": "我的"
       }
+    },
+    {
+      "path": "pages/appealReview/appealReview",
+      "style": {
+        "navigationBarTitleText": "审核申诉",
+        "enablePullDownRefresh": true
+      }
+    },
+    {
+      "path": "pages/reportView/reportView",
+      "style": {
+        "navigationBarTitleText": "各机务段自然情况表"
+      }
     }
   ]
 }

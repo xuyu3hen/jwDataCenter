@@ -12,23 +12,29 @@
         </view>
         <text class="menu-text">新增违章</text>
       </view>
-      <view class="menu-card" @click="go('/pages/list/list?mode=all')">
+      <view class="menu-card" v-if="hasListPermission" @click="go('/pages/list/list?mode=all')">
         <view class="icon-box" style="background: #3f51b5;">
-          <text class="icon-text">全</text>
+          <text class="icon-text">查</text>
         </view>
         <text class="menu-text">全部违章</text>
-      </view>
-      <view class="menu-card" @click="go('/pages/list/list?mode=month')">
-        <view class="icon-box" style="background: #00796b;">
-          <text class="icon-text">月</text>
-        </view>
-        <text class="menu-text">月度违章</text>
       </view>
       <view class="menu-card" @click="go('/pages/self/self')">
         <view class="icon-box" style="background: #d46b08;">
           <text class="icon-text">我</text>
         </view>
         <text class="menu-text">我的违章</text>
+      </view>
+      <view class="menu-card" v-if="hasAuditPermission" @click="go('/pages/appealReview/appealReview')">
+        <view class="icon-box" style="background: #8c1d18;">
+          <text class="icon-text">审</text>
+        </view>
+        <text class="menu-text">审核申诉</text>
+      </view>
+      <view class="menu-card" @click="go('/pages/reportView/reportView')">
+        <view class="icon-box" style="background: #1890ff;">
+          <text class="icon-text">表</text>
+        </view>
+        <text class="menu-text">机统报表</text>
       </view>
       <view class="menu-card" @click="go('/pages/report/report')">
         <view class="icon-box" style="background: #455a64;">
@@ -47,6 +53,8 @@ import { clearToken, getToken } from '../../utils/auth'
 import { getViolations, getSelfViolations } from '../../api/demo'
 
 const isAdmin = ref(false)
+const hasAuditPermission = ref(false)
+const hasListPermission = ref(false)
 const latestViolationId = ref('')
 
 function ensureLogin() {
@@ -57,7 +65,12 @@ function ensureLogin() {
   }
   const userInfo = uni.getStorageSync('user_info') || {}
   const user = userInfo.user || userInfo.data || userInfo || {}
+  const permissions = userInfo.permissions || []
+  
   isAdmin.value = user.userName === 'admin' || user.admin || (user.roles && user.roles.some(r => r.roleKey === 'admin'))
+  hasAuditPermission.value = permissions.includes('*:*:*') || permissions.includes('safety:violation:audit')
+  hasListPermission.value = permissions.includes('*:*:*') || permissions.includes('safety:violationSta:all') || permissions.includes('safety:violationSta:depot') || permissions.includes('safety:violationSta:workshop')
+  
   return true
 }
 

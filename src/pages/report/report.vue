@@ -6,7 +6,6 @@
       </view>
       <view class="user-info">
         <view class="name">{{ userInfo.nickName || userInfo.userName || '未知用户' }}</view>
-        <view class="role">{{ roleName }}</view>
       </view>
     </view>
 
@@ -18,14 +17,6 @@
       <view class="info-row">
         <text class="info-label">职务</text>
         <text class="info-value">{{ getPostLabel(userInfo.postName || userInfo.postType) }}</text>
-      </view>
-      <view class="info-row">
-        <text class="info-label">角色</text>
-        <text class="info-value">{{ roleNamesText }}</text>
-      </view>
-      <view class="info-row">
-        <text class="info-label">权限</text>
-        <text class="info-value">{{ permissionsText }}</text>
       </view>
     </view>
 
@@ -45,9 +36,6 @@ import { getUserInfo } from '../../api/demo'
 import { getBaseUrl } from '../../utils/request'
 
 const userInfo = ref({})
-const roleObjects = ref([])
-const roleKeys = ref([])
-const permissions = ref([])
 
 const avatarUrl = computed(() => {
   if (userInfo.value.avatar) {
@@ -58,29 +46,6 @@ const avatarUrl = computed(() => {
     return base + userInfo.value.avatar
   }
   return 'https://coresg-normal.trae.ai/api/ide/v1/text_to_image?prompt=A%20minimalist%20user%20avatar%20icon%20in%20blue%20tones&image_size=square'
-})
-
-const roleName = computed(() => {
-  if (roleObjects.value && roleObjects.value.length > 0) {
-    return roleObjects.value.map(r => r.roleName).filter(Boolean).join(' / ')
-  }
-  return '暂无角色'
-})
-
-const roleNamesText = computed(() => {
-  if (roleObjects.value && roleObjects.value.length > 0) {
-    return roleObjects.value.map(r => r.roleName).filter(Boolean).join(' / ')
-  }
-  if (roleKeys.value && roleKeys.value.length > 0) {
-    return roleKeys.value.join(' / ')
-  }
-  return '-'
-})
-
-const permissionsText = computed(() => {
-  if (!permissions.value || permissions.value.length === 0) return '-'
-  if (permissions.value.length <= 3) return permissions.value.join(' / ')
-  return `${permissions.value.slice(0, 3).join(' / ')} 等${permissions.value.length}项`
 })
 
 onShow(() => {
@@ -105,9 +70,6 @@ async function fetchUserInfo() {
 
 function applyUserInfo(data) {
   userInfo.value = data?.user || {}
-  roleObjects.value = userInfo.value?.roles || []
-  roleKeys.value = data?.roles || []
-  permissions.value = data?.permissions || []
 }
 
 function getPostLabel(code) {
@@ -164,11 +126,6 @@ function logout() {
   font-weight: bold;
   color: #333;
   margin-bottom: 8rpx;
-}
-
-.role {
-  font-size: 26rpx;
-  color: #666;
 }
 
 .mt {
