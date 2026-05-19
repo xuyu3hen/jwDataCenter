@@ -2,6 +2,45 @@ import { setToken, setClientId, getToken, getClientId } from '../utils/auth'
 import { request, getBaseUrl } from '../utils/request'
 
 const VIOLATIONS_KEY = 'demo_violations'
+export const WEBVIEW_CLIENT_ID = 'e5cd7e4891bf95d1d19206ce24a7b32e'
+
+function normalizeApiBaseUrl(raw) {
+  return String(raw || '').trim().replace(/\/+$/, '')
+}
+
+function getDatacenterBaseUrl() {
+  const baseUrl = normalizeApiBaseUrl(getBaseUrl())
+  if (!baseUrl) return ''
+  if (baseUrl.includes('/jwxt/prod-api')) return baseUrl
+  if (baseUrl.endsWith('/prod-api')) return baseUrl
+  if (baseUrl.includes('/jwxt')) return `${baseUrl}/prod-api`
+  return `${baseUrl}/jwxt/prod-api`
+}
+
+function datacenterRequest({ url, method = 'GET', data, header }) {
+  const baseUrl = getDatacenterBaseUrl()
+  const token = getToken()
+  const clientId = getClientId()
+  const finalUrl = baseUrl ? `${baseUrl}${url}` : url
+
+  console.log('【Datacenter Request】请求地址:', finalUrl)
+  console.log('【Datacenter Request】请求参数:', JSON.stringify(data || {}))
+
+  return new Promise((resolve, reject) => {
+    uni.request({
+      url: finalUrl,
+      method,
+      data,
+      header: {
+        ...(header || {}),
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...(clientId ? { ClientId: clientId } : {})
+      },
+      success: (res) => resolve(res),
+      fail: (err) => reject(err)
+    })
+  })
+}
 
 function nowIso() {
   const d = new Date()
@@ -70,6 +109,90 @@ export async function login({ username, password, clientId = '428a8310cd442757ae
     console.error('【Login Catch Error】登录抛出异常:', e)
     throw e
   }
+}
+
+function extractToken(data) {
+  return (
+    data?.access_token ||
+    data?.token ||
+    data?.data?.access_token ||
+    data?.data?.token ||
+    data?.data?.accessToken ||
+    data?.accessToken ||
+    ''
+  )
+}
+
+async function requestLoginTokenByUrl(url, payload) {
+  const baseUrl = getBaseUrl()
+  const finalUrl = baseUrl ? `${baseUrl}${url}` : url
+
+  return new Promise((resolve, reject) => {
+    uni.request({
+      url: finalUrl,
+      method: 'POST',
+      data: payload,
+      header: {
+        'Content-Type': 'application/json'
+      },
+      success: (res) => {
+        if (res?.statusCode !== 200) {
+          reject(new Error(res?.data?.msg || res?.data?.message || `登录失败（${res?.statusCode || '未知状态码'}）`))
+          return
+        }
+
+        const data = res?.data || {}
+        if (data.code && data.code !== 200 && data.code !== 0) {
+          reject(new Error(data.msg || data.message || `登录失败（${data.code}）`))
+          return
+        }
+
+        const token = extractToken(data)
+        if (!token) {
+          reject(new Error('登录失败：未获取到token'))
+          return
+        }
+
+        resolve({ token, raw: data })
+      },
+      fail: (err) => {
+        reject(err)
+      }
+    })
+  })
+}
+
+export async function getWebViewToken({ username, password, clientId = WEBVIEW_CLIENT_ID, grantType = 'password', tenantId = '', code = '', uuid = '' }) {
+  if (!username || !password) {
+    throw new Error('缺少已记住的账号密码，请先勾选记住密码并重新登录一次')
+  }
+
+  const payload = {
+    clientId,
+    grantType,
+    tenantId,
+    code,
+    uuid,
+    username,
+    password
+  }
+
+  const loginUrls = ['/auth/login2', '/auth/login']
+  let lastError = null
+
+  for (const url of loginUrls) {
+    try {
+      console.log(`【WebView Token】尝试获取 Web 登录令牌: ${url}, clientId: ${clientId}`)
+      const result = await requestLoginTokenByUrl(url, payload)
+      console.log(`【WebView Token】获取成功: ${url}`)
+      return result.token
+    } catch (error) {
+      lastError = error
+      console.error(`【WebView Token】获取失败: ${url}`, error)
+    }
+  }
+
+  throw lastError || new Error('获取 WebView 登录令牌失败')
 }
 
 export async function getViolations(params = { pageNum: 1, pageSize: 10 }) {
@@ -218,6 +341,64 @@ export async function addViolation(payload) {
   }
 
   return { ok: true, data: resData }
+}
+
+export async function listBaseTable(params) {
+  const res = await datacenterRequest({
+    url: '/datacenter/baseTable/select/list',
+    method: 'POST',
+    data: params || {}
+  })
+  return parseListResponse(res)
+}
+
+export async function saveBaseTable(payload) {
+  const res = await datacenterRequest({
+    url: '/datacenter/baseTable/save',
+    method: 'POST',
+    data: payload || {}
+  })
+
+  if (res?.statusCode !== 200) {
+    const msg = res?.data?.msg || res?.data?.message || `保存失败（${res?.statusCode || '未知状态码'}）`
+    throw new Error(msg)
+  }
+
+  const resData = res?.data || {}
+  if (resData.code && resData.code !== 200 && resData.code !== 0) {
+    throw new Error(resData.msg || resData.message || `保存失败（${resData.code}）`)
+  }
+
+  return resData?.data ?? resData
+}
+
+export async function listDepotCondition(params) {
+  const res = await datacenterRequest({
+    url: '/datacenter/tableData/depot-condition/select/list',
+    method: 'POST',
+    data: params || {}
+  })
+  return parseListResponse(res)
+}
+
+export async function saveDepotCondition(payload) {
+  const res = await datacenterRequest({
+    url: '/datacenter/tableData/depot-condition/save',
+    method: 'POST',
+    data: payload || {}
+  })
+
+  if (res?.statusCode !== 200) {
+    const msg = res?.data?.msg || res?.data?.message || `保存失败（${res?.statusCode || '未知状态码'}）`
+    throw new Error(msg)
+  }
+
+  const resData = res?.data || {}
+  if (resData.code && resData.code !== 200 && resData.code !== 0) {
+    throw new Error(resData.msg || resData.message || `保存失败（${resData.code}）`)
+  }
+
+  return resData?.data ?? resData
 }
 
 export async function uploadFile(filePath) {

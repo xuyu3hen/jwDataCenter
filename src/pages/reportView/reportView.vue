@@ -1,7 +1,7 @@
 <template>
   <view class="page">
-    <view class="tips" v-if="!url">
-      <text class="tips-text">缺少网页地址，无法加载页面</text>
+    <view v-if="!url" class="tips">
+      <text class="tips-text">{{ tipsText }}</text>
     </view>
     <web-view v-else :src="url"></web-view>
   </view>
@@ -10,33 +10,42 @@
 <script setup>
 import { ref } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
-import { getBaseUrl } from '../../utils/request'
 
-const DEFAULT_PATH = '/jwxt/#/datacenter/dataCenter/thirtySevenChart'
+const DEFAULT_HOST = 'http://10.102.67.146'
 const url = ref('')
+const tipsText = ref('网页地址为空')
 
-function normalizeBaseUrl(raw) {
-  return String(raw || '').trim().replace(/\/+$/, '')
+function decodeValue(raw) {
+  if (!raw) return ''
+  try {
+    return decodeURIComponent(String(raw))
+  } catch (error) {
+    return String(raw)
+  }
 }
 
-function buildWebUrl(rawUrl) {
-  const source = String(rawUrl || '').trim()
-  if (!source) return ''
-  if (/^https?:\/\//i.test(source)) return source
-
-  const baseUrl = normalizeBaseUrl(getBaseUrl())
-  if (!baseUrl) return source
-  if (source.startsWith('/')) return `${baseUrl}${source}`
-  return `${baseUrl}/${source}`
+function joinUrl(host, path) {
+  const base = String(host || '').trim().replace(/\/+$/, '')
+  const target = String(path || '').trim()
+  if (!base) return ''
+  if (!target) return base
+  if (/^https?:\/\//i.test(target)) return target
+  if (target.startsWith('/')) return `${base}${target}`
+  return `${base}/${target}`
 }
 
 onLoad((options) => {
-  if (options?.url) {
-    url.value = buildWebUrl(decodeURIComponent(options.url))
+  const rawUrl = decodeValue(options?.url)
+  const rawPath = decodeValue(options?.path)
+  const finalUrl = joinUrl(DEFAULT_HOST, rawUrl || rawPath)
+
+  if (!finalUrl) {
+    tipsText.value = '网页地址拼接失败'
     return
   }
 
-  url.value = buildWebUrl(DEFAULT_PATH)
+  console.log('【ReportView】当前嵌入地址:', finalUrl)
+  url.value = finalUrl
 })
 </script>
 

@@ -55,6 +55,13 @@
       "style": {
         "navigationBarTitleText": "各机务段自然情况表"
       }
+    },
+    {
+      "path": "pages/message/message",
+      "style": {
+        "navigationBarTitleText": "消息中心",
+        "navigationStyle": "custom"
+      }
     }
   ]
 }

@@ -30,11 +30,17 @@
         </view>
         <text class="menu-text">审核申诉</text>
       </view>
-      <view class="menu-card" @click="go('/pages/reportView/reportView')">
+      <view class="menu-card" @click="goReportView()">
         <view class="icon-box" style="background: #1890ff;">
           <text class="icon-text">表</text>
         </view>
         <text class="menu-text">机统报表</text>
+      </view>
+      <view class="menu-card" @click="go('/pages/message/message')">
+        <view class="icon-box" style="background: #9c27b0;">
+          <text class="icon-text">信</text>
+        </view>
+        <text class="menu-text">消息中心</text>
       </view>
       <view class="menu-card" @click="go('/pages/report/report')">
         <view class="icon-box" style="background: #455a64;">
@@ -51,11 +57,13 @@ import { ref } from 'vue'
 import { onShow, onHide, onUnload } from '@dcloudio/uni-app'
 import { clearToken, getToken } from '../../utils/auth'
 import { getViolations, getSelfViolations } from '../../api/demo'
+import { connectSSE, closeSSE } from '../../utils/sse.js'
 
 const isAdmin = ref(false)
 const hasAuditPermission = ref(false)
 const hasListPermission = ref(false)
 const latestViolationId = ref('')
+const REPORT_VIEW_PATH = '/jwxt/#/datacenter/dataCenter/thirtySevenChart'
 
 function ensureLogin() {
   const token = getToken()
@@ -126,8 +134,35 @@ function go(url) {
   uni.navigateTo({ url })
 }
 
+function goReportView() {
+  uni.navigateTo({
+    url: `/pages/reportView/reportView?path=${encodeURIComponent(REPORT_VIEW_PATH)}`
+  })
+}
+
+// 接收到 SSE 消息时的全局弹窗回调
+const handleGlobalMessage = (msgData) => {
+  // 震动提示
+  uni.vibrateShort({
+    success: function () {
+        console.log('vibrateShort success');
+    }
+  });
+  
+  // 弹出提示窗
+  uni.showModal({
+    title: '系统通知',
+    content: msgData,
+    showCancel: false,
+    confirmText: '知道了'
+  })
+}
+
 onShow(async () => {
   if (ensureLogin()) {
+    // 开启 SSE 消息接收
+    connectSSE(handleGlobalMessage)
+    
     // 首次进入获取一次最新ID用于后续比对
     try {
       const userInfo = uni.getStorageSync('user_info') || {}
@@ -151,10 +186,12 @@ onShow(async () => {
 
 onHide(() => {
   stopPolling()
+  closeSSE()
 })
 
 onUnload(() => {
   stopPolling()
+  closeSSE()
 })
 </script>
 

@@ -1,0 +1,7 @@
+- [x] 已确认 Web 端 `/jwxt/#/datacenter/dataCenter/thirtySevenChart` 的实际入口与访问路径
+- [x] 已确认 Web 端可通过 `appToken` 在路由守卫中写入 token 并继续访问目标页
+- [x] WebView 页面能按当前登录前缀正确拼接目标地址
+- [x] WebView 页面能附加 `appToken`，避免再次进入 Web 登录流程
+- [x] 支持透传 `tableId`、`yearMonth`、`deptId` 并与 Web 页面初始化逻辑匹配
+- [x] 首页“机统报表”入口已指向新的直达方案
+- [x] 构建或诊断验证通过，未引入新的明显错误
