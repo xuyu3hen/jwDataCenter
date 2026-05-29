@@ -702,3 +702,36 @@ export async function getViolationRuleListBySector(sector) {
   })
   return parseListResponse(res)
 }
+
+export async function sendSseMessage(msg, userId) {
+  let targetUserId = userId
+  if (!targetUserId) {
+    const userInfo = uni.getStorageSync('user_info')
+    targetUserId = userInfo?.user?.userId || userInfo?.userId || ''
+    if (!targetUserId) {
+      throw new Error('未获取到当前用户信息，无法发送测试消息')
+    }
+  }
+
+  console.log(`【SSE Test】准备发送消息给 userId: ${targetUserId}, msg: ${msg}`)
+  
+  const res = await request({
+    url: '/resource/sse/send',
+    method: 'GET',
+    data: {
+      userId: targetUserId,
+      msg: msg || '这是一条测试消息'
+    }
+  })
+
+  if (res?.statusCode !== 200) {
+    throw new Error(`发送消息失败（${res?.statusCode || '未知状态码'}）`)
+  }
+
+  const resData = res?.data || {}
+  if (resData.code && resData.code !== 200 && resData.code !== 0) {
+    throw new Error(resData.msg || resData.message || `发送消息失败（${resData.code}）`)
+  }
+
+  return { ok: true, data: resData }
+}

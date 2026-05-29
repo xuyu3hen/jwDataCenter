@@ -24,15 +24,31 @@
         </view>
       </view>
     </scroll-view>
+
+    <!-- SSE 桥接组件 -->
+    <AppSseBridge 
+      :bridgeData="sseBridgeData" 
+      @message="handleNewMessage"
+      @open="onSseOpen"
+      @error="onSseError"
+      @close="onSseClose"
+    />
+
+    <!-- 顶部消息通知组件 -->
+    <TopNotification ref="notificationRef" />
   </view>
 </template>
 
 <script setup>
 import { ref } from 'vue'
 import { onShow, onHide, onUnload } from '@dcloudio/uni-app'
-import { connectSSE, closeSSE } from '@/utils/sse.js'
+import { clearToken, getToken, getClientId } from '../../utils/auth'
+import { getBaseUrl } from '../../utils/request'
+import AppSseBridge from '../../components/AppSseBridge.vue'
+import TopNotification from '../../components/TopNotification.vue'
 
 const messageList = ref([])
+const notificationRef = ref(null)
 
 function goBack() {
   uni.navigateBack({
@@ -41,6 +57,55 @@ function goBack() {
       uni.reLaunch({ url: '/pages/home/home' })
     }
   })
+}
+
+// SSE 桥接通信数据
+const sseBridgeData = ref({})
+
+function getApiBaseUrl() {
+  return (getBaseUrl() || '').trim().replace(/\/+$/, '')
+}
+
+function startSSE() {
+  const token = getToken()
+  const clientId = getClientId()
+  if (!token) return
+
+  const baseUrl = getApiBaseUrl()
+  const sseUrl = `${baseUrl}/resource/sse`
+  console.log('【SSE】Message页准备通过 RenderJS 桥接连接:', sseUrl)
+
+  // 每次连接加上时间戳 seq，触发 watch 更新
+  sseBridgeData.value = {
+    action: 'connect',
+    seq: Date.now(),
+    url: sseUrl,
+    header: {
+      'Authorization': `Bearer ${token}`,
+      'ClientId': clientId
+    }
+  }
+}
+
+function stopSSE() {
+  sseBridgeData.value = {
+    action: 'disconnect',
+    seq: Date.now()
+  }
+}
+
+const onSseOpen = (res) => {
+  console.log('【SSE】Message页请求通道已建立', res)
+}
+
+const onSseError = (err) => {
+  console.error('【SSE】Message页连接失败', err)
+  // 5秒后重连
+  setTimeout(() => startSSE(), 5000)
+}
+
+const onSseClose = (res) => {
+  console.log('【SSE】Message页连接已关闭', res)
 }
 
 // 接收到消息的回调
@@ -58,27 +123,24 @@ const handleNewMessage = (msgData) => {
     }
   });
   
-  // 弹出提示窗
-  uni.showModal({
-    title: '系统通知',
-    content: msgData,
-    showCancel: false,
-    confirmText: '知道了'
-  })
+  // 弹出自定义顶部横幅通知
+  if (notificationRef.value) {
+    notificationRef.value.show(msgData)
+  }
 }
 
 onShow(() => {
   // 页面显示时，建立 SSE 连接
-  connectSSE(handleNewMessage)
+  startSSE()
 })
 
 onHide(() => {
   // 页面隐藏时关闭
-  closeSSE()
+  stopSSE()
 })
 
 onUnload(() => {
-  closeSSE()
+  stopSSE()
 })
 </script>
 

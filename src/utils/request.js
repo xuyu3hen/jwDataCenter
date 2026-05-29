@@ -21,9 +21,10 @@ export function request({ url, method = 'GET', data, header }) {
   const clientId = getClientId()
 
   const finalUrl = baseUrl ? `${baseUrl}${url}` : url
+  const shouldAttachAuth = token && !(String(url || '').startsWith('/auth/login'))
   const finalHeader = {
     ...(header || {}),
-    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    ...(shouldAttachAuth ? { Authorization: `Bearer ${token}` } : {}),
     ...(clientId ? { ClientId: clientId } : {})
   }
 

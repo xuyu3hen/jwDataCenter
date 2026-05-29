@@ -36,12 +36,6 @@
         </view>
         <text class="menu-text">机统报表</text>
       </view>
-      <view class="menu-card" @click="go('/pages/message/message')">
-        <view class="icon-box" style="background: #9c27b0;">
-          <text class="icon-text">信</text>
-        </view>
-        <text class="menu-text">消息中心</text>
-      </view>
       <view class="menu-card" @click="go('/pages/report/report')">
         <view class="icon-box" style="background: #455a64;">
           <text class="icon-text">人</text>
@@ -49,21 +43,86 @@
         <text class="menu-text">个人中心</text>
       </view>
     </view>
+
+    <!-- SSE 桥接组件 -->
+    <AppSseBridge 
+      :bridgeData="sseBridgeData" 
+      @message="handleGlobalMessage"
+      @open="onSseOpen"
+      @error="onSseError"
+      @close="onSseClose"
+    />
+
+    <!-- 顶部消息通知组件 -->
+    <TopNotification ref="notificationRef" />
   </view>
 </template>
 
 <script setup>
 import { ref } from 'vue'
 import { onShow, onHide, onUnload } from '@dcloudio/uni-app'
-import { clearToken, getToken } from '../../utils/auth'
-import { getViolations, getSelfViolations } from '../../api/demo'
-import { connectSSE, closeSSE } from '../../utils/sse.js'
+import { clearToken, getToken, getClientId } from '../../utils/auth'
+import { getBaseUrl } from '../../utils/request'
+import { getViolations, getSelfViolations, sendSseMessage } from '../../api/demo'
+import AppSseBridge from '../../components/AppSseBridge.vue'
+import TopNotification from '../../components/TopNotification.vue'
 
 const isAdmin = ref(false)
 const hasAuditPermission = ref(false)
 const hasListPermission = ref(false)
 const latestViolationId = ref('')
 const REPORT_VIEW_PATH = '/jwxt/#/datacenter/dataCenter/thirtySevenChart'
+
+const notificationRef = ref(null)
+
+// SSE 桥接通信数据
+const sseBridgeData = ref({})
+
+function getApiBaseUrl() {
+  return (getBaseUrl() || '').trim().replace(/\/+$/, '')
+}
+
+function startSSE() {
+  const token = getToken()
+  const clientId = getClientId()
+  if (!token) return
+
+  const baseUrl = getApiBaseUrl()
+  const sseUrl = `${baseUrl}/resource/sse`
+  console.log('【SSE】准备通过 RenderJS 桥接连接:', sseUrl)
+
+  // 每次连接加上时间戳 seq，触发 watch 更新
+  sseBridgeData.value = {
+    action: 'connect',
+    seq: Date.now(),
+    url: sseUrl,
+    header: {
+      'Authorization': `Bearer ${token}`,
+      'ClientId': clientId
+    }
+  }
+}
+
+function stopSSE() {
+  sseBridgeData.value = {
+    action: 'disconnect',
+    seq: Date.now()
+  }
+}
+
+const onSseOpen = (res) => {
+  console.log('【SSE】请求通道已建立', res)
+}
+
+const onSseError = (err) => {
+  console.error('【SSE】连接失败', err)
+  // 5秒后重连
+  setTimeout(() => startSSE(), 5000)
+}
+
+const onSseClose = (res) => {
+  console.log('【SSE】连接已关闭', res)
+}
 
 function ensureLogin() {
   const token = getToken()
@@ -149,19 +208,16 @@ const handleGlobalMessage = (msgData) => {
     }
   });
   
-  // 弹出提示窗
-  uni.showModal({
-    title: '系统通知',
-    content: msgData,
-    showCancel: false,
-    confirmText: '知道了'
-  })
+  // 弹出自定义顶部横幅通知
+  if (notificationRef.value) {
+    notificationRef.value.show(msgData)
+  }
 }
 
 onShow(async () => {
   if (ensureLogin()) {
-    // 开启 SSE 消息接收
-    connectSSE(handleGlobalMessage)
+    // 开启 SSE 消息接收 (通过 RenderJS 桥接)
+    startSSE()
     
     // 首次进入获取一次最新ID用于后续比对
     try {
@@ -186,12 +242,12 @@ onShow(async () => {
 
 onHide(() => {
   stopPolling()
-  closeSSE()
+  stopSSE()
 })
 
 onUnload(() => {
   stopPolling()
-  closeSSE()
+  stopSSE()
 })
 </script>
 

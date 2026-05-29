@@ -10,8 +10,9 @@
 <script setup>
 import { ref } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
+import { getBaseUrl } from '../../utils/request'
 
-const DEFAULT_HOST = 'http://10.102.67.146'
+const DEFAULT_HOST = 'http://10.102.67.146:8080'
 const url = ref('')
 const tipsText = ref('网页地址为空')
 
@@ -37,7 +38,8 @@ function joinUrl(host, path) {
 onLoad((options) => {
   const rawUrl = decodeValue(options?.url)
   const rawPath = decodeValue(options?.path)
-  const finalUrl = joinUrl(DEFAULT_HOST, rawUrl || rawPath)
+  const host = getBaseUrl() || DEFAULT_HOST
+  const finalUrl = joinUrl(host, rawUrl || rawPath)
 
   if (!finalUrl) {
     tipsText.value = '网页地址拼接失败'
