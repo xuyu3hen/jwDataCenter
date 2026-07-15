@@ -28,12 +28,18 @@
           </template>
         </view>
       </view>
+
+      <view v-if="violations.length > 0" class="list-footer">
+        <text v-if="loadingMore">加载中...</text>
+        <text v-else-if="hasMore">上拉加载更多</text>
+        <text v-else>没有更多了</text>
+      </view>
     </view>
   </view>
 </template>
 
 <script setup>
-import { onShow, onPullDownRefresh } from '@dcloudio/uni-app'
+import { onShow, onPullDownRefresh, onReachBottom } from '@dcloudio/uni-app'
 import { ref } from 'vue'
 import { getToken } from '../../utils/auth'
 import { getAppealPendingViolations, auditAppealViolation } from '../../api/demo'
@@ -41,6 +47,10 @@ import { getAppealPendingViolations, auditAppealViolation } from '../../api/demo
 const violations = ref([])
 const processingId = ref(null)
 const processingAction = ref('')
+const pageNum = ref(1)
+const pageSize = 10
+const hasMore = ref(true)
+const loadingMore = ref(false)
 
 function ensureLogin() {
   const token = getToken()
@@ -50,17 +60,52 @@ function ensureLogin() {
 }
 
 async function refresh() {
+  if (loadingMore.value) return
   try {
     uni.showLoading({ title: '加载中...' })
     console.log('【申诉审核】请求接口: GET /safety/violation/select/page')
-    console.log('【申诉审核】请求参数:', { pageNum: 1, pageSize: 50 })
-    const list = await getAppealPendingViolations({ pageNum: 1, pageSize: 50 })
-    console.log('【申诉审核】返回结果:', list)
-    violations.value = list || []
+    pageNum.value = 1
+    console.log('【申诉审核】请求参数:', { pageNum: pageNum.value, pageSize, statusId: '4/6' })
+    const result = await getAppealPendingViolations({ pageNum: pageNum.value, pageSize })
+    console.log('【申诉审核】返回结果:', result)
+    violations.value = result?.list || []
+    hasMore.value = Boolean(result?.hasMore)
   } catch (e) {
     uni.showToast({ title: e.message || '加载失败', icon: 'none' })
   } finally {
     uni.hideLoading()
+  }
+}
+
+async function loadMore() {
+  if (loadingMore.value) return
+  if (!hasMore.value) return
+  loadingMore.value = true
+  try {
+    const nextPage = pageNum.value + 1
+    console.log('【申诉审核】加载更多:', { pageNum: nextPage, pageSize, statusId: '4/6' })
+    const result = await getAppealPendingViolations({ pageNum: nextPage, pageSize })
+    const newList = result?.list || []
+    if (newList.length === 0) {
+      hasMore.value = false
+      return
+    }
+    const exists = new Set((violations.value || []).map(x => String(x?.id ?? '')))
+    const merged = [...(violations.value || [])]
+    for (const x of newList) {
+      const id = String(x?.id ?? '')
+      if (!id) continue
+      if (exists.has(id)) continue
+      exists.add(id)
+      merged.push(x)
+    }
+    violations.value = merged
+    pageNum.value = nextPage
+    hasMore.value = Boolean(result?.hasMore)
+  } catch (e) {
+    uni.showToast({ title: e.message || '加载失败', icon: 'none' })
+  } finally {
+    loadingMore.value = false
   }
 }
 
@@ -166,6 +211,10 @@ onPullDownRefresh(async () => {
   await refresh()
   uni.stopPullDownRefresh()
 })
+
+onReachBottom(() => {
+  loadMore()
+})
 </script>
 
 <style>
@@ -253,6 +302,13 @@ onPullDownRefresh(async () => {
   border-top: 1px solid #f0f0f0;
   padding-top: 16rpx;
   gap: 16rpx;
+}
+
+.list-footer {
+  padding: 20rpx 0 0;
+  text-align: center;
+  color: #999;
+  font-size: 24rpx;
 }
 .approve-btn, .reject-btn, .view-btn {
   margin: 0;

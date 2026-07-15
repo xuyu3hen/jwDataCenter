@@ -235,7 +235,8 @@
             <textarea class="textarea" v-model="form.clauseContent" disabled placeholder="自动获取" />
           </view>
 
-          <view class="field">
+      <!--
+      <view class="field">
             <text class="label">现场照片</text>
         <view class="photo-list">
           <view class="photo-item" v-for="(img, idx) in form.photos" :key="idx">
@@ -247,6 +248,7 @@
           </view>
         </view>
       </view>
+      -->
 
       <button class="btn" :disabled="submitting" @click="handleSubmit">
         {{ submitting ? '提交中...' : '提交' }}
@@ -258,7 +260,7 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import { addViolation, searchUsersByWorkCardNumber, searchUsersByNickNamePy, searchUsersByNickName, getUserDetailByWorkCardNumber, getDictData, getReportDeptListByDepotId, getViolationRuleListBySector, uploadFile } from '../../api/demo'
+import { addViolation, searchUsersByWorkCardNumber, searchUsersByNickNamePy, searchUsersByNickName, getUserDetailByWorkCardNumber, getDictData, getReportDeptListByDepotId, getViolationRuleListBySector } from '../../api/demo'
 
 const form = ref({
   responsibleName: '',
@@ -1079,16 +1081,16 @@ onMounted(() => {
     .catch(() => {})
 })
 
+/*
 function chooseImage() {
   uni.chooseImage({
-    count: 9, // 取消最多3张的限制，每次最多可选9张
+    count: 9,
     sizeType: ['compressed'],
     success: async (res) => {
       uni.showLoading({ title: '上传中...' })
       try {
         for (const filePath of res.tempFilePaths) {
           const uploadRes = await uploadFile(filePath)
-          // uploadRes is an array according to the screenshot: data: [{fileId, fileName, src...}]
           const fileData = Array.isArray(uploadRes) ? uploadRes[0] : uploadRes
           if (fileData) {
             form.value.photos.push({
@@ -1119,6 +1121,7 @@ function previewImage(idx) {
 function removePhoto(idx) {
   form.value.photos.splice(idx, 1)
 }
+*/
 
 async function handleSubmit() {
   if (!form.value.responsibleName) return uni.showToast({ title: '请输入责任人', icon: 'none' })
@@ -1132,11 +1135,14 @@ async function handleSubmit() {
   
   try {
     const payload = { ...form.value }
+    /*
     if (payload.photos && payload.photos.length > 0) {
       payload.attachment = JSON.stringify(payload.photos)
     } else {
       payload.attachment = ''
     }
+    */
+    payload.attachment = ''
 
     await addViolation(payload)
     uni.showToast({ title: '提交成功', icon: 'success' })

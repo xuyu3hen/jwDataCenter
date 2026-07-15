@@ -12,7 +12,7 @@ import { ref } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import { getBaseUrl } from '../../utils/request'
 
-const DEFAULT_HOST = 'http://10.102.67.146:8080'
+const DEFAULT_HOST = 'https://js.whrailway.cn:9091/jwdzh/'
 const url = ref('')
 const tipsText = ref('网页地址为空')
 

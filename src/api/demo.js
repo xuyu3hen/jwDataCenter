@@ -214,20 +214,45 @@ export async function getSelfViolations(params = { workNumber: '' }) {
 }
 
 export async function getAppealPendingViolations(params = { pageNum: 1, pageSize: 20 }) {
-  const res = await request({
-    url: '/safety/violation/select/page',
-    method: 'GET',
-    // 注意：如果是多个状态，后端接口如果支持数组可以直接传，不支持的话可能需要逗号分隔或者多次查询。
-    // 假设后端目前这个接口只接受单一状态查询，我们可以把参数去掉，通过前端过滤出 statusId === 4 (申诉中) 和 statusId === 6 (分析中) 的数据。
-    // 如果后端支持，应该传 statusId: '4,6' 或者不传 statusId 让后端返回所有再由前端过滤。这里我们暂且不传 statusId，拿全量来过滤
-    data: { ...params }
-  })
-  const list = await parseListResponse(res)
-  // 过滤出 申诉中(4) 和 分析中(6) 的记录
-  return (list || []).filter(x => {
-    const sid = String(x?.statusId)
-    return sid === '4' || sid === '6'
-  })
+  const input = params || {}
+  const pageNum = Number(input.pageNum || 1)
+  const pageSize = Number(input.pageSize || 20)
+  const rest = { ...input }
+  delete rest.pageNum
+  delete rest.pageSize
+
+  const [res4, res6] = await Promise.all([
+    request({
+      url: '/safety/violation/select/page',
+      method: 'GET',
+      data: { ...rest, pageNum, pageSize, statusId: 4 }
+    }),
+    request({
+      url: '/safety/violation/select/page',
+      method: 'GET',
+      data: { ...rest, pageNum, pageSize, statusId: 6 }
+    })
+  ])
+
+  const list4 = await parseListResponse(res4)
+  const list6 = await parseListResponse(res6)
+
+  const byId = new Map()
+  for (const x of (list4 || [])) {
+    const id = x?.id != null ? String(x.id) : ''
+    if (!id) continue
+    byId.set(id, x)
+  }
+  for (const x of (list6 || [])) {
+    const id = x?.id != null ? String(x.id) : ''
+    if (!id) continue
+    if (!byId.has(id)) byId.set(id, x)
+  }
+
+  const list = Array.from(byId.values())
+  const hasMore = (list4 || []).length === pageSize || (list6 || []).length === pageSize
+
+  return { list, hasMore }
 }
 
 export async function auditAppealViolation({ id, approved, message }) {

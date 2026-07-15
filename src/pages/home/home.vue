@@ -30,12 +30,6 @@
         </view>
         <text class="menu-text">审核申诉</text>
       </view>
-      <view class="menu-card" @click="goReportView()">
-        <view class="icon-box" style="background: #1890ff;">
-          <text class="icon-text">表</text>
-        </view>
-        <text class="menu-text">机统报表</text>
-      </view>
       <view class="menu-card" @click="go('/pages/report/report')">
         <view class="icon-box" style="background: #455a64;">
           <text class="icon-text">人</text>
@@ -61,9 +55,9 @@
 <script setup>
 import { ref } from 'vue'
 import { onShow, onHide, onUnload } from '@dcloudio/uni-app'
-import { clearToken, getToken, getClientId } from '../../utils/auth'
+import { getToken, getClientId } from '../../utils/auth'
 import { getBaseUrl } from '../../utils/request'
-import { getViolations, getSelfViolations, sendSseMessage } from '../../api/demo'
+import { getViolations, getSelfViolations } from '../../api/demo'
 import AppSseBridge from '../../components/AppSseBridge.vue'
 import TopNotification from '../../components/TopNotification.vue'
 
@@ -71,7 +65,6 @@ const isAdmin = ref(false)
 const hasAuditPermission = ref(false)
 const hasListPermission = ref(false)
 const latestViolationId = ref('')
-const REPORT_VIEW_PATH = '/jwxt/#/datacenter/dataCenter/thirtySevenChart'
 
 const notificationRef = ref(null)
 
@@ -191,12 +184,6 @@ function stopPolling() {
 
 function go(url) {
   uni.navigateTo({ url })
-}
-
-function goReportView() {
-  uni.navigateTo({
-    url: `/pages/reportView/reportView?path=${encodeURIComponent(REPORT_VIEW_PATH)}`
-  })
 }
 
 // 接收到 SSE 消息时的全局弹窗回调

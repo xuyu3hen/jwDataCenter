@@ -2,7 +2,6 @@
   <view class="page">
     <view class="header">
       <view class="title">机务数据中心 - 违章列表</view>
-      <button class="link" @click="logout">退出</button>
     </view>
 
     <view class="card mt">
@@ -38,34 +37,36 @@
         <view class="item-meta">{{ getMeta(item) }}</view>
         <view class="item-desc">{{ getDesc(item) }}</view>
       </view>
+
+      <view v-if="violations.length > 0" class="list-footer">
+        <text v-if="loadingMore">加载中...</text>
+        <text v-else-if="hasMore">上拉加载更多</text>
+        <text v-else>没有更多了</text>
+      </view>
     </view>
 
   </view>
 </template>
 
 <script setup>
-import { onLoad, onShow, onHide, onUnload } from '@dcloudio/uni-app'
+import { onLoad, onShow, onReachBottom } from '@dcloudio/uni-app'
 import { ref } from 'vue'
-import { clearToken, getToken } from '../../utils/auth'
+import { getToken } from '../../utils/auth'
 import { getViolations } from '../../api/demo'
 
 const violations = ref([])
+const pageNum = ref(1)
+const pageSize = 10
+const hasMore = ref(true)
+const loadingMore = ref(false)
 
 const now = new Date()
-const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
+const nextMonthDate = new Date(now.getFullYear(), now.getMonth() + 1, 1)
+const currentMonth = `${nextMonthDate.getFullYear()}-${String(nextMonthDate.getMonth() + 1).padStart(2, '0')}`
 const statTime = ref('')
-const mode = ref('month')
 
 onLoad((options) => {
-  if (options.mode) {
-    mode.value = options.mode
-  }
-  // 默认如果没传或者传all，就把时间置空，否则带上当前月
-  if (mode.value === 'month') {
-    statTime.value = currentMonth
-  } else {
-    statTime.value = ''
-  }
+  statTime.value = currentMonth
   uni.setNavigationBarTitle({ title: '违章查询' })
 })
 
@@ -74,8 +75,13 @@ function clearMonth() {
   refresh()
 }
 
+function normalizeMonth(raw) {
+  const v = String(raw || '').trim()
+  return v ? v.slice(0, 7) : ''
+}
+
 function onMonthChange(e) {
-  statTime.value = e.detail.value
+  statTime.value = normalizeMonth(e.detail.value)
   refresh()
 }
 
@@ -86,23 +92,28 @@ function ensureLogin() {
   }
 }
 
-function getQueryParams() {
+function getQueryParams(targetPageNum) {
   const params = { 
-    pageNum: 1, 
-    pageSize: 10
+    pageNum: Number(targetPageNum || 1), 
+    pageSize: pageSize
   }
   if (statTime.value) {
-    params.staTime = statTime.value
+    params.staTime = normalizeMonth(statTime.value)
   }
   return params
 }
 
 async function refresh() {
+  if (loadingMore.value) return
   try {
     uni.showLoading({ title: '加载中...' })
-    const params = getQueryParams()
-    const list = await getViolations(params)
+    pageNum.value = 1
+    hasMore.value = true
+    const list = await getViolations(getQueryParams(pageNum.value))
     violations.value = list || []
+    if ((violations.value || []).length < pageSize) {
+      hasMore.value = false
+    }
   } catch (e) {
     uni.showToast({ title: e.message || '加载失败', icon: 'none' })
   } finally {
@@ -110,48 +121,28 @@ async function refresh() {
   }
 }
 
-let pollTimer = null
+async function loadMore() {
+  if (loadingMore.value) return
+  if (!hasMore.value) return
 
-function startPolling() {
-  if (pollTimer) clearInterval(pollTimer)
-  pollTimer = setInterval(async () => {
-    try {
-      const params = getQueryParams()
-      const list = await getViolations(params)
-      
-      const newList = list || []
-      
-      if (newList.length > 0 && violations.value.length > 0) {
-        const latestId = String(newList[0].id)
-        const oldLatestId = String(violations.value[0].id)
-        
-        // 发现新的违章记录（最新的ID变了，且不在旧列表中说明是新增推送）
-        if (latestId !== oldLatestId && !violations.value.find(v => String(v.id) === latestId)) {
-          uni.showModal({
-            title: '违章提醒',
-            content: '您有新的违章记录被提报，请及时查看。',
-            showCancel: false,
-            confirmText: '我知道了'
-          })
-          // 触发手机震动提醒
-          if (uni.vibrateLong) {
-            uni.vibrateLong()
-          }
-        }
-      }
-      
-      // 更新列表数据
-      violations.value = newList
-    } catch (e) {
-      // 定时查询静默处理，不打断用户操作
+  loadingMore.value = true
+  try {
+    const nextPage = pageNum.value + 1
+    const list = await getViolations(getQueryParams(nextPage))
+    const newList = list || []
+    if (newList.length === 0) {
+      hasMore.value = false
+      return
     }
-  }, 15000) // 每15秒轮询一次，获取推送
-}
-
-function stopPolling() {
-  if (pollTimer) {
-    clearInterval(pollTimer)
-    pollTimer = null
+    violations.value = [...(violations.value || []), ...newList]
+    pageNum.value = nextPage
+    if (newList.length < pageSize) {
+      hasMore.value = false
+    }
+  } catch (e) {
+    uni.showToast({ title: e.message || '加载失败', icon: 'none' })
+  } finally {
+    loadingMore.value = false
   }
 }
 
@@ -163,11 +154,6 @@ function goDetail(item) {
   // 使用本地缓存传递详情数据，避免 URL 传参过长导致 App 端报错
   uni.setStorageSync('current_violation_detail', item)
   uni.navigateTo({ url: `/pages/detail/detail?from=home` })
-}
-
-function logout() {
-  clearToken()
-  uni.reLaunch({ url: '/pages/login/login' })
 }
 
 function getTitle(item) {
@@ -227,15 +213,10 @@ function getLevelClass(level) {
 onShow(() => {
   ensureLogin()
   refresh()
-  startPolling()
 })
 
-onHide(() => {
-  stopPolling()
-})
-
-onUnload(() => {
-  stopPolling()
+onReachBottom(() => {
+  loadMore()
 })
 </script>
 
@@ -374,5 +355,12 @@ onUnload(() => {
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
   overflow: hidden;
+}
+
+.list-footer {
+  padding: 20rpx 0 0;
+  text-align: center;
+  color: #999;
+  font-size: 24rpx;
 }
 </style>
