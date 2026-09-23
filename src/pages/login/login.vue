@@ -53,12 +53,15 @@ import { login, getUserInfo, getDictData } from '../../api/demo'
 import { setBaseUrl } from '../../utils/request'
 
 // 隐藏参数，根据提供的图片设置默认值
-const baseUrl = ref('https://js.whrailway.cn:9091/jwdzh/')
+// #ifdef H5
+const baseUrl = ref('/jwxt/prod-api/')
+// #endif
+// #ifndef H5
+const baseUrl = ref('https://10.102.124.50/jwxt/prod-api/')
+// #endif
 const clientId = ref('428a8310cd442757ae699df5d894f051')
 const tenantId = ref('')
 const grantType = ref('password')
-const code = ref('')
-const uuid = ref('')
 
 const username = ref('')
 const password = ref('')
@@ -124,82 +127,79 @@ function toggleRemember(e) {
   rememberMe.value = e.detail.value.length > 0
 }
 
-async function handleLogin() {
+function handleLogin() {
   if (loading.value) return
   loading.value = true
   try {
     setBaseUrl(baseUrl.value)
-    await login({
+
+    login({
       clientId: clientId.value.trim(),
       grantType: grantType.value.trim(),
       tenantId: tenantId.value.trim(),
-      code: code.value.trim(),
-      uuid: uuid.value.trim(),
       username: username.value.trim(),
       password: password.value
-    })
-    
-    // 处理记住密码逻辑
-    let accounts = uni.getStorageSync('saved_accounts')
-    if (!Array.isArray(accounts)) {
-      accounts = accountHistory.value || []
-    }
-
-    if (rememberMe.value) {
-      const currentU = username.value.trim()
-      const currentP = password.value
-      // 去重，把最新的提到最前面
-      accounts = accounts.filter(acc => acc.username !== currentU)
-      accounts.unshift({ username: currentU, password: currentP })
-      // 最多保存 10 个账号
-      if (accounts.length > 10) accounts = accounts.slice(0, 10)
-      
-      uni.setStorageSync('saved_accounts', accounts)
-      accountHistory.value = accounts
-      
-      // 清除旧版本单账号缓存
-      uni.removeStorageSync('saved_username')
-      uni.removeStorageSync('saved_password')
-    } else {
-      // 如果不记住密码，则从历史记录中移除当前账号
-      accounts = accounts.filter(acc => acc.username !== username.value.trim())
-      uni.setStorageSync('saved_accounts', accounts)
-      accountHistory.value = accounts
-    }
-
-    // 登录成功后立刻获取个人信息并缓存，如果获取失败则视为登录失败
-    const userInfo = await getUserInfo()
-    uni.setStorageSync('user_info', userInfo)
-
-    const dictTasks = [
-      { type: 'zgglxt_xgw', key: 'dict_zgglxt_xgw' },
-      { type: 'zgglxt_zzmm', key: 'dict_zgglxt_zzmm' },
-      { type: 'safety_violation_report_type', key: 'dict_safety_violation_report_type' },
-      { type: 'safety_post_type', key: 'dict_safety_post_type' },
-      { type: 'safety_violation_post_type', key: 'dict_safety_violation_post_type' },
-      { type: 'safety_violation_type', key: 'dict_safety_violation_type' },
-      { type: 'safety_violation_assessment', key: 'dict_safety_violation_assessment' }
-    ]
-    const dictResults = await Promise.allSettled(dictTasks.map(x => getDictData(x.type)))
-    for (let i = 0; i < dictResults.length; i++) {
-      const r = dictResults[i]
-      if (r.status === 'fulfilled' && Array.isArray(r.value)) {
-        uni.setStorageSync(dictTasks[i].key, r.value)
+    }).then(async () => {
+      // 处理记住密码逻辑
+      let accounts = uni.getStorageSync('saved_accounts')
+      if (!Array.isArray(accounts)) {
+        accounts = accountHistory.value || []
       }
-    }
 
-    uni.reLaunch({
-      url: '/pages/home/home'
+      if (rememberMe.value) {
+        const currentU = username.value.trim()
+        const currentP = password.value
+        accounts = accounts.filter(acc => acc.username !== currentU)
+        accounts.unshift({ username: currentU, password: currentP })
+        if (accounts.length > 10) accounts = accounts.slice(0, 10)
+
+        uni.setStorageSync('saved_accounts', accounts)
+        accountHistory.value = accounts
+
+        uni.removeStorageSync('saved_username')
+        uni.removeStorageSync('saved_password')
+      } else {
+        accounts = accounts.filter(acc => acc.username !== username.value.trim())
+        uni.setStorageSync('saved_accounts', accounts)
+        accountHistory.value = accounts
+      }
+
+      try {
+        const userInfo = await getUserInfo()
+        uni.setStorageSync('user_info', userInfo)
+
+        const dictTasks = [
+          { type: 'zgglxt_xgw', key: 'dict_zgglxt_xgw' },
+          { type: 'zgglxt_zzmm', key: 'dict_zgglxt_zzmm' },
+          { type: 'safety_violation_report_type', key: 'dict_safety_violation_report_type' },
+          { type: 'safety_post_type', key: 'dict_safety_post_type' },
+          { type: 'safety_violation_post_type', key: 'dict_safety_violation_post_type' },
+          { type: 'safety_violation_type', key: 'dict_safety_violation_type' },
+          { type: 'safety_violation_assessment', key: 'dict_safety_violation_assessment' }
+        ]
+        const dictResults = await Promise.allSettled(dictTasks.map(x => getDictData(x.type)))
+        for (let i = 0; i < dictResults.length; i++) {
+          const r = dictResults[i]
+          if (r.status === 'fulfilled' && Array.isArray(r.value)) {
+            uni.setStorageSync(dictTasks[i].key, r.value)
+          }
+        }
+      } catch (e) {
+        console.warn('获取用户信息/字典失败', e)
+      }
+
+      uni.reLaunch({ url: '/pages/home/home' })
+    }).catch((e) => {
+      uni.removeStorageSync('demo_token')
+      uni.removeStorageSync('demo_client_id')
+      uni.showToast({
+        title: e?.message || '登录失败',
+        icon: 'none'
+      })
+    }).finally(() => {
+      loading.value = false
     })
   } catch (e) {
-    // 登录失败或获取个人信息失败时，清除可能残留的 token
-    uni.removeStorageSync('demo_token')
-    uni.removeStorageSync('demo_client_id')
-    uni.showToast({
-      title: e?.message || '登录失败',
-      icon: 'none'
-    })
-  } finally {
     loading.value = false
   }
 }
@@ -303,4 +303,3 @@ async function handleLogin() {
   padding: 0 10rpx;
 }
 </style>
-
