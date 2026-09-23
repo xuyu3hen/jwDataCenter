@@ -1,5 +1,5 @@
 <template>
-  <view class="page">
+  <view class="page" :class="themeClass">
     <view class="card" v-if="violation">
       <view class="header">
         <view class="title">{{ getTitle(violation) }}</view>
@@ -129,7 +129,8 @@
 <script setup>
 import { ref } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
-import { getViolationDetail } from '../../api/demo'
+import { getViolationDetail, getDictData } from '../../api/demo'
+import { themeClass } from '../../utils/theme'
 
 const violation = ref({})
 
@@ -142,14 +143,28 @@ function getPostLabel(code) {
 
 function getPoliticalText(code) {
   if (!code) return ''
-  if (code === '01') return '中共党员'
-  if (code === '02') return '中共预备党员'
-  if (code === '03') return '共青团员'
-  if (code === '13') return '群众'
-  return code
+  const dict = uni.getStorageSync('dict_zgglxt_zzmm') || []
+  const match = dict.find(x => String(x.dictValue) === String(code) || String(x.value) === String(code))
+  return match ? (match.dictLabel || match.label) : code
+}
+
+async function ensurePoliticalDict() {
+  const cached = uni.getStorageSync('dict_zgglxt_zzmm')
+  if (cached && Array.isArray(cached) && cached.length > 0) return
+  try {
+    const remote = await getDictData('zgglxt_zzmm')
+    const items = (remote || []).map(x => ({
+      dictLabel: x.dictLabel ?? x.label ?? x.name ?? '',
+      dictValue: x.dictValue ?? x.value ?? x.code ?? ''
+    })).filter(it => it.dictLabel)
+    uni.setStorageSync('dict_zgglxt_zzmm', items)
+  } catch (e) {
+    console.warn('加载政治面貌字典失败', e)
+  }
 }
 
 onLoad(async (options) => {
+  ensurePoliticalDict()
   if (options.from === 'home' || options.from === 'self') {
     try {
       const data = uni.getStorageSync('current_violation_detail')
@@ -229,15 +244,15 @@ function previewImage(idx) {
 <style>
 .page {
   padding: 24rpx;
-  background-color: #f5f7fa;
+  background-color: var(--bg-color, #f5f7fa);
   min-height: 100vh;
 }
 
 .card {
-  background: #fff;
+  background: var(--card-bg, #fff);
   border-radius: 16rpx;
   padding: 32rpx;
-  box-shadow: 0 2rpx 10rpx rgba(0,0,0,0.05);
+  box-shadow: 0 2rpx 10rpx var(--shadow, rgba(0,0,0,0.05));
 }
 
 .header {
@@ -246,13 +261,13 @@ function previewImage(idx) {
   align-items: center;
   margin-bottom: 32rpx;
   padding-bottom: 24rpx;
-  border-bottom: 1px solid #f0f0f0;
+  border-bottom: 1px solid var(--border-color, #f0f0f0);
 }
 
 .title {
   font-size: 34rpx;
   font-weight: bold;
-  color: #333;
+  color: var(--text-primary, #333);
 }
 
 .level {
@@ -278,7 +293,7 @@ function previewImage(idx) {
 }
 
 .label {
-  color: #666;
+  color: var(--text-secondary, #666);
   width: 160rpx;
   flex-shrink: 0;
 }
@@ -287,7 +302,7 @@ function previewImage(idx) {
 }
 
 .value {
-  color: #333;
+  color: var(--text-primary, #333);
   flex: 1;
 }
 .value.points {
@@ -295,7 +310,7 @@ function previewImage(idx) {
   font-weight: bold;
 }
 .value.desc {
-  background: #f8f9fa;
+  background: var(--input-bg, #f8f9fa);
   padding: 20rpx;
   border-radius: 8rpx;
   line-height: 1.5;
@@ -304,7 +319,7 @@ function previewImage(idx) {
 .section-title {
   font-size: 30rpx;
   font-weight: bold;
-  color: #333;
+  color: var(--text-primary, #333);
   margin-bottom: 20rpx;
   display: block;
 }
@@ -324,6 +339,6 @@ function previewImage(idx) {
 .empty {
   text-align: center;
   padding: 100rpx 0;
-  color: #999;
+  color: var(--text-tertiary, #999);
 }
 </style>

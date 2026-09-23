@@ -1,5 +1,5 @@
 <template>
-  <view class="page">
+  <view class="page" :class="themeClass">
     <view class="header">
       <view class="avatar-wrap">
         <image class="avatar" :src="avatarUrl" mode="aspectFill" />
@@ -32,6 +32,7 @@ import { ref, computed } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
 import { clearToken } from '../../utils/auth'
 import { getUserInfo } from '../../api/demo'
+import { themeClass } from '../../utils/theme'
 
 import { getBaseUrl } from '../../utils/request'
 
@@ -88,19 +89,19 @@ function logout() {
 
 <style>
 .page {
-  background-color: #f5f7fa;
+  background-color: var(--bg-color, #f5f7fa);
   min-height: 100vh;
   padding: 32rpx;
   box-sizing: border-box;
 }
 
 .header {
-  background: #fff;
+  background: var(--card-bg, #fff);
   border-radius: 16rpx;
   padding: 40rpx 32rpx;
   display: flex;
   align-items: center;
-  box-shadow: 0 2rpx 10rpx rgba(0,0,0,0.05);
+  box-shadow: 0 2rpx 10rpx var(--shadow, rgba(0,0,0,0.05));
 }
 
 .avatar-wrap {
@@ -109,7 +110,7 @@ function logout() {
   border-radius: 60rpx;
   overflow: hidden;
   margin-right: 32rpx;
-  background: #f0f0f0;
+  background: var(--input-bg, #f0f0f0);
 }
 
 .avatar {
@@ -124,7 +125,7 @@ function logout() {
 .name {
   font-size: 36rpx;
   font-weight: bold;
-  color: #333;
+  color: var(--text-primary, #333);
   margin-bottom: 8rpx;
 }
 
@@ -133,10 +134,10 @@ function logout() {
 }
 
 .info-card {
-  background: #fff;
+  background: var(--card-bg, #fff);
   border-radius: 16rpx;
   padding: 8rpx 32rpx;
-  box-shadow: 0 2rpx 10rpx rgba(0,0,0,0.05);
+  box-shadow: 0 2rpx 10rpx var(--shadow, rgba(0,0,0,0.05));
 }
 
 .info-row {
@@ -144,7 +145,7 @@ function logout() {
   justify-content: space-between;
   align-items: center;
   padding: 22rpx 0;
-  border-bottom: 1px solid #f0f0f0;
+  border-bottom: 1px solid var(--border-color, #f0f0f0);
 }
 
 .info-row:last-child {
@@ -153,22 +154,22 @@ function logout() {
 
 .info-label {
   font-size: 28rpx;
-  color: #666;
+  color: var(--text-secondary, #666);
 }
 
 .info-value {
   font-size: 28rpx;
-  color: #111;
+  color: var(--text-primary, #111);
   max-width: 70%;
   text-align: right;
   word-break: break-all;
 }
 
 .menu-list {
-  background: #fff;
+  background: var(--card-bg, #fff);
   border-radius: 16rpx;
   padding: 0 32rpx;
-  box-shadow: 0 2rpx 10rpx rgba(0,0,0,0.05);
+  box-shadow: 0 2rpx 10rpx var(--shadow, rgba(0,0,0,0.05));
 }
 
 .menu-item {
@@ -176,7 +177,7 @@ function logout() {
   justify-content: space-between;
   align-items: center;
   padding: 32rpx 0;
-  border-bottom: 1px solid #f0f0f0;
+  border-bottom: 1px solid var(--border-color, #f0f0f0);
 }
 .menu-item:last-child {
   border-bottom: none;
@@ -205,12 +206,12 @@ function logout() {
 
 .menu-title {
   font-size: 30rpx;
-  color: #333;
+  color: var(--text-primary, #333);
 }
 
 .menu-text {
   font-size: 30rpx;
-  color: #333;
+  color: var(--text-primary, #333);
   flex: 1;
 }
 

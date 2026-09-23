@@ -1,21 +1,45 @@
 <template>
-  <view class="page">
+  <view class="page" :class="themeClass">
     <view class="header">
       <view class="title">机务数据中心 - 违章列表</view>
     </view>
 
     <view class="card mt">
-      <view class="row between">
-        <view class="row">
-          <text style="font-size: 28rpx; color: #666; margin-right: 16rpx;">统计月份</text>
-          <picker mode="date" fields="month" :value="statTime" @change="onMonthChange">
-            <view style="font-size: 28rpx; color: #333; background: #f5f7fa; padding: 10rpx 24rpx; border-radius: 8rpx; min-width: 160rpx; text-align: center;">
-              {{ statTime || '请选择(为空查全部)' }}
-            </view>
-          </picker>
-          <button v-if="statTime" class="btn small" style="margin-left: 10rpx; font-size: 24rpx; padding: 0 16rpx; line-height: 2; color: #999; background: #eee;" @click.stop="clearMonth">清除</button>
-        </view>
-        <button class="btn primary" style="margin: 0; padding: 0 32rpx; font-size: 26rpx; line-height: 2.2;" @click="refresh">查询</button>
+      <view class="filter-row">
+        <text class="filter-label">统计月份</text>
+        <picker mode="date" fields="month" :value="statTime" @change="onMonthChange">
+          <view class="filter-picker">
+            {{ statTime || '请选择(为空查全部)' }}
+          </view>
+        </picker>
+        <button v-if="statTime" class="btn small clear-btn" @click.stop="clearMonth">清除</button>
+      </view>
+
+      <view class="filter-row">
+        <text class="filter-label">提报日期</text>
+        <picker mode="date" :value="beginTime" @change="onBeginTimeChange">
+          <view class="filter-picker">
+            {{ beginTime || '开始日期' }}
+          </view>
+        </picker>
+        <text style="margin: 0 8rpx; color: #999;">~</text>
+        <picker mode="date" :value="endTime" @change="onEndTimeChange">
+          <view class="filter-picker">
+            {{ endTime || '结束日期' }}
+          </view>
+        </picker>
+        <button v-if="beginTime || endTime" class="btn small clear-btn" @click.stop="clearDateRange">清除</button>
+      </view>
+
+      <view class="filter-row">
+        <text class="filter-label">部门</text>
+        <picker :value="deptIndex" :range="deptOptions" @change="onDeptChange">
+          <view class="filter-picker" :class="{ 'picker-empty': deptIndex < 0 }">
+            {{ deptIndex > -1 ? deptOptions[deptIndex] : '请选择(为空查全部)' }}
+          </view>
+        </picker>
+        <button v-if="deptIndex > -1" class="btn small clear-btn" @click.stop="clearDept">清除</button>
+        <button class="btn primary query-btn" @click="refresh">查询</button>
       </view>
     </view>
 
@@ -52,7 +76,8 @@
 import { onLoad, onShow, onReachBottom } from '@dcloudio/uni-app'
 import { ref } from 'vue'
 import { getToken } from '../../utils/auth'
-import { getViolations } from '../../api/demo'
+import { getViolations, getReportDeptListByDepotId } from '../../api/demo'
+import { themeClass } from '../../utils/theme'
 
 const violations = ref([])
 const pageNum = ref(1)
@@ -64,10 +89,17 @@ const now = new Date()
 const nextMonthDate = new Date(now.getFullYear(), now.getMonth() + 1, 1)
 const currentMonth = `${nextMonthDate.getFullYear()}-${String(nextMonthDate.getMonth() + 1).padStart(2, '0')}`
 const statTime = ref('')
+const beginTime = ref('')
+const endTime = ref('')
+
+const deptItems = ref([])
+const deptOptions = ref([])
+const deptIndex = ref(-1)
 
 onLoad((options) => {
   statTime.value = currentMonth
   uni.setNavigationBarTitle({ title: '违章查询' })
+  loadDepartments()
 })
 
 function clearMonth() {
@@ -85,6 +117,63 @@ function onMonthChange(e) {
   refresh()
 }
 
+function onBeginTimeChange(e) {
+  beginTime.value = e.detail.value
+}
+
+function onEndTimeChange(e) {
+  endTime.value = e.detail.value
+}
+
+function clearDateRange() {
+  beginTime.value = ''
+  endTime.value = ''
+}
+
+function onDeptChange(e) {
+  deptIndex.value = Number(e.detail.value)
+}
+
+function clearDept() {
+  deptIndex.value = -1
+}
+
+async function loadDepartments() {
+  try {
+    const userInfo = uni.getStorageSync('user_info') || {}
+    const user = userInfo.user || userInfo.data || userInfo || {}
+    const parentIds = user.parentDeptIdList
+    const depotId = Array.isArray(parentIds) ? parentIds[0] : (user.parentDeptId || '')
+    if (!depotId) return
+
+    const list = await getReportDeptListByDepotId(depotId)
+    const nodes = (list || []).filter(Boolean).map(x => ({
+      id: String(x.deptId ?? x.id ?? x.value ?? '').trim(),
+      parentId: String(x.parentId ?? x.parentDeptId ?? '').trim(),
+      name: String(x.deptName ?? x.name ?? x.label ?? '').trim()
+    })).filter(it => it.id && it.name)
+
+    // 扁平化为单层列表：父部门/子部门
+    const flat = []
+    for (const n of nodes) {
+      if (!n.parentId || n.parentId === '0') {
+        flat.push(n)
+      }
+    }
+    // 加入子部门
+    for (const n of nodes) {
+      if (n.parentId && n.parentId !== '0') {
+        flat.push(n)
+      }
+    }
+
+    deptItems.value = flat
+    deptOptions.value = flat.map(x => x.name)
+  } catch (e) {
+    console.warn('加载部门列表失败', e)
+  }
+}
+
 function ensureLogin() {
   const token = getToken()
   if (!token) {
@@ -93,12 +182,21 @@ function ensureLogin() {
 }
 
 function getQueryParams(targetPageNum) {
-  const params = { 
-    pageNum: Number(targetPageNum || 1), 
+  const params = {
+    pageNum: Number(targetPageNum || 1),
     pageSize: pageSize
   }
   if (statTime.value) {
     params.staTime = normalizeMonth(statTime.value)
+  }
+  if (beginTime.value) {
+    params.beginTime = beginTime.value
+  }
+  if (endTime.value) {
+    params.endTime = endTime.value
+  }
+  if (deptIndex.value > -1 && deptItems.value[deptIndex.value]) {
+    params.reportDept = deptItems.value[deptIndex.value].id
   }
   return params
 }
@@ -223,7 +321,7 @@ onReachBottom(() => {
 <style>
 .page {
   padding: 24rpx;
-  background-color: #f5f7fa;
+  background-color: var(--bg-color, #f5f7fa);
   min-height: 100vh;
 }
 
@@ -237,6 +335,7 @@ onReachBottom(() => {
 .title {
   font-size: 36rpx;
   font-weight: bold;
+  color: var(--text-primary, #333);
 }
 
 .actions {
@@ -246,10 +345,10 @@ onReachBottom(() => {
 }
 
 .card {
-  background: #fff;
+  background: var(--card-bg, #fff);
   border-radius: 16rpx;
   padding: 24rpx;
-  box-shadow: 0 2rpx 10rpx rgba(0,0,0,0.05);
+  box-shadow: 0 2rpx 10rpx var(--shadow, rgba(0,0,0,0.05));
 }
 
 .mt {
@@ -265,9 +364,56 @@ onReachBottom(() => {
   justify-content: space-between;
 }
 
+.filter-row {
+  display: flex;
+  align-items: center;
+  margin-bottom: 20rpx;
+  flex-wrap: wrap;
+}
+.filter-row:last-child {
+  margin-bottom: 0;
+}
+
+.filter-label {
+  font-size: 28rpx;
+  color: #666;
+  margin-right: 16rpx;
+  white-space: nowrap;
+}
+
+.filter-picker {
+  font-size: 28rpx;
+  color: #333;
+  background: #f5f7fa;
+  padding: 10rpx 24rpx;
+  border-radius: 8rpx;
+  min-width: 160rpx;
+  text-align: center;
+}
+.filter-picker.picker-empty {
+  color: #999;
+}
+
+.clear-btn {
+  margin-left: 10rpx;
+  font-size: 24rpx;
+  padding: 0 16rpx;
+  line-height: 2;
+  color: #999;
+  background: #eee;
+}
+
+.query-btn {
+  margin-left: auto;
+  padding: 0 32rpx;
+  font-size: 26rpx;
+  line-height: 2.2;
+}
+
 .card-title {
   font-size: 32rpx;
   font-weight: 700;
+  color: var(--text-primary, #333);
 }
 
 .link {
@@ -294,13 +440,13 @@ onReachBottom(() => {
 
 .empty {
   padding: 40rpx 0;
-  color: #999;
+  color: var(--text-tertiary, #999);
   text-align: center;
 }
 
 .item {
   padding: 24rpx 0;
-  border-bottom: 1px solid #f0f0f0;
+  border-bottom: 1px solid var(--border-color, #f0f0f0);
 }
 .item:last-child {
   border-bottom: none;
@@ -309,7 +455,7 @@ onReachBottom(() => {
 .item-title {
   font-size: 30rpx;
   font-weight: bold;
-  color: #333;
+  color: var(--text-primary, #333);
   display: flex;
   align-items: center;
   gap: 8px;
@@ -344,13 +490,13 @@ onReachBottom(() => {
 .item-meta {
   margin-top: 10rpx;
   font-size: 24rpx;
-  color: #888;
+  color: var(--text-tertiary, #888);
 }
 
 .item-desc {
   margin-top: 10rpx;
   font-size: 26rpx;
-  color: #555;
+  color: var(--text-secondary, #555);
   display: -webkit-box;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
@@ -360,7 +506,7 @@ onReachBottom(() => {
 .list-footer {
   padding: 20rpx 0 0;
   text-align: center;
-  color: #999;
+  color: var(--text-tertiary, #999);
   font-size: 24rpx;
 }
 </style>

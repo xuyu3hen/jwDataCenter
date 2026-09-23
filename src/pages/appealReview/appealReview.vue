@@ -1,5 +1,5 @@
 <template>
-  <view class="page">
+  <view class="page" :class="themeClass">
     <view class="card mt">
       <view v-if="violations.length === 0" class="empty">暂无申诉待审核记录</view>
       <view v-for="item in violations" :key="item.id" class="item">
@@ -43,6 +43,7 @@ import { onShow, onPullDownRefresh, onReachBottom } from '@dcloudio/uni-app'
 import { ref } from 'vue'
 import { getToken } from '../../utils/auth'
 import { getAppealPendingViolations, auditAppealViolation } from '../../api/demo'
+import { themeClass } from '../../utils/theme'
 
 const violations = ref([])
 const processingId = ref(null)
@@ -220,11 +221,11 @@ onReachBottom(() => {
 <style>
 .page {
   padding: 24rpx;
-  background-color: #f5f7fa;
+  background-color: var(--bg-color, #f5f7fa);
   min-height: 100vh;
 }
 .card {
-  background: #fff;
+  background: var(--card-bg, #fff);
   border-radius: 16rpx;
   padding: 24rpx;
 }
@@ -234,7 +235,7 @@ onReachBottom(() => {
 .empty {
   text-align: center;
   padding: 80rpx 0;
-  color: #999;
+  color: var(--text-tertiary, #999);
 }
 .row {
   display: flex;
@@ -245,7 +246,7 @@ onReachBottom(() => {
 }
 .item {
   padding: 22rpx 0;
-  border-bottom: 1px solid #f0f0f0;
+  border-bottom: 1px solid var(--border-color, #f0f0f0);
 }
 .item:last-child {
   border-bottom: none;
@@ -255,14 +256,14 @@ onReachBottom(() => {
   align-items: center;
   gap: 16rpx;
   font-size: 30rpx;
-  color: #333;
+  color: var(--text-primary, #333);
   font-weight: bold;
 }
 .item-post {
   font-size: 24rpx;
-  color: #666;
+  color: var(--text-secondary, #666);
   font-weight: normal;
-  background: #f5f7fa;
+  background: var(--input-bg, #f8f9fa);
   padding: 4rpx 12rpx;
   border-radius: 8rpx;
 }
@@ -284,12 +285,12 @@ onReachBottom(() => {
 .item-meta {
   margin-top: 12rpx;
   font-size: 26rpx;
-  color: #666;
+  color: var(--text-secondary, #666);
 }
 .item-desc {
   margin-top: 10rpx;
   font-size: 26rpx;
-  color: #555;
+  color: var(--text-secondary, #555);
   display: -webkit-box;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
@@ -299,7 +300,7 @@ onReachBottom(() => {
   margin-top: 24rpx;
   display: flex;
   justify-content: flex-end;
-  border-top: 1px solid #f0f0f0;
+  border-top: 1px solid var(--border-color, #f0f0f0);
   padding-top: 16rpx;
   gap: 16rpx;
 }
@@ -307,7 +308,7 @@ onReachBottom(() => {
 .list-footer {
   padding: 20rpx 0 0;
   text-align: center;
-  color: #999;
+  color: var(--text-tertiary, #999);
   font-size: 24rpx;
 }
 .approve-btn, .reject-btn, .view-btn {
@@ -327,7 +328,7 @@ onReachBottom(() => {
 }
 .view-btn {
   background: #fff;
-  color: #333;
+  color: var(--text-primary, #333);
   border: 1px solid #ddd;
 }
 .approve-btn[disabled], .reject-btn[disabled] {

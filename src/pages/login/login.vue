@@ -1,7 +1,7 @@
 <template>
-  <view class="page">
+  <view class="page" :class="themeClass">
     <view class="card">
-      <view class="title">机务数据中心</view>
+      <view class="title">机务数据中心APP</view>
 
       <view class="field" style="position: relative; z-index: 999;">
         <view class="label">账号</view>
@@ -51,6 +51,7 @@
 import { ref, onMounted } from 'vue'
 import { login, getUserInfo, getDictData } from '../../api/demo'
 import { setBaseUrl } from '../../utils/request'
+import { themeClass } from '../../utils/theme'
 
 // 隐藏参数，根据提供的图片设置默认值
 // #ifdef H5
@@ -208,11 +209,13 @@ function handleLogin() {
 <style>
 .page {
   padding: 32rpx;
-  padding-top: 100rpx; /* 增加顶部间距，避免内容被状态栏遮挡 */
+  padding-top: 100rpx;
+  background-color: var(--bg-color, #f5f7fa);
+  min-height: 100vh;
 }
 
 .card {
-  background: #fff;
+  background: var(--card-bg, #fff);
   border-radius: 20rpx;
   padding: 32rpx;
 }
@@ -221,6 +224,7 @@ function handleLogin() {
   font-size: 40rpx;
   font-weight: 700;
   margin-bottom: 24rpx;
+  color: var(--text-primary, #333);
 }
 
 .field {
@@ -228,16 +232,17 @@ function handleLogin() {
 }
 
 .label {
-  color: #666;
+  color: var(--text-secondary, #666);
   font-size: 26rpx;
   margin-bottom: 10rpx;
 }
 
 .input {
-  background: #f3f5f7;
+  background: var(--input-bg, #f3f5f7);
   border-radius: 14rpx;
   padding: 22rpx;
   font-size: 30rpx;
+  color: var(--text-primary, #333);
 }
 
 .btn {
@@ -257,7 +262,7 @@ function handleLogin() {
   display: flex;
   align-items: center;
   font-size: 26rpx;
-  color: #666;
+  color: var(--text-secondary, #666);
 }
 
 .suggest-wrap {
@@ -269,10 +274,10 @@ function handleLogin() {
   top: 100%;
   left: 0;
   right: 0;
-  background-color: #fff;
-  border: 1px solid #eee;
+  background-color: var(--card-bg, #fff);
+  border: 1px solid var(--border-color, #eee);
   border-radius: 8rpx;
-  box-shadow: 0 4rpx 12rpx rgba(0,0,0,0.1);
+  box-shadow: 0 4rpx 12rpx var(--shadow, rgba(0,0,0,0.1));
   max-height: 400rpx;
   overflow-y: auto;
   margin-top: 8rpx;
@@ -280,7 +285,7 @@ function handleLogin() {
 
 .suggest-item {
   padding: 20rpx 24rpx;
-  border-bottom: 1px solid #f5f5f5;
+  border-bottom: 1px solid var(--border-color, #f5f5f5);
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -289,17 +294,17 @@ function handleLogin() {
   border-bottom: none;
 }
 .suggest-item:active {
-  background-color: #f9f9f9;
+  background-color: var(--input-bg, #f9f9f9);
 }
 
 .suggest-text {
   font-size: 28rpx;
-  color: #333;
+  color: var(--text-primary, #333);
 }
 
 .delete-icon {
   font-size: 36rpx;
-  color: #999;
+  color: var(--text-tertiary, #999);
   padding: 0 10rpx;
 }
 </style>

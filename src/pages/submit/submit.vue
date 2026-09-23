@@ -1,5 +1,5 @@
 <template>
-  <view class="page">
+  <view class="page" :class="themeClass">
     <view class="form-card">
       <view class="field">
         <text class="label"><text class="required">*</text>责任人</text>
@@ -260,6 +260,7 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
+import { themeClass } from '../../utils/theme'
 import { addViolation, searchUsersByWorkCardNumber, searchUsersByNickNamePy, searchUsersByNickName, getUserDetailByWorkCardNumber, getDictData, getReportDeptListByDepotId, getViolationRuleListBySector } from '../../api/demo'
 
 const form = ref({
@@ -1160,15 +1161,15 @@ async function handleSubmit() {
 <style>
 .page {
   padding: 32rpx;
-  background-color: #f5f7fa;
+  background-color: var(--bg-color, #f5f7fa);
   min-height: 100vh;
 }
 
 .form-card {
-  background: #fff;
+  background: var(--card-bg, #fff);
   border-radius: 16rpx;
   padding: 32rpx;
-  box-shadow: 0 2rpx 10rpx rgba(0,0,0,0.05);
+  box-shadow: 0 2rpx 10rpx var(--shadow, rgba(0,0,0,0.05));
 }
 
 .field {
@@ -1178,7 +1179,7 @@ async function handleSubmit() {
 .label {
   display: block;
   font-size: 28rpx;
-  color: #333;
+  color: var(--text-primary, #333);
   margin-bottom: 16rpx;
   font-weight: 500;
 }
@@ -1189,11 +1190,11 @@ async function handleSubmit() {
 }
 
 .input, .picker-value {
-  background: #f8f9fa;
+  background: var(--input-bg, #f8f9fa);
   border-radius: 8rpx;
   padding: 20rpx 24rpx;
   font-size: 28rpx;
-  color: #333;
+  color: var(--text-primary, #333);
 }
 
 .suggest-wrap {
@@ -1205,7 +1206,7 @@ async function handleSubmit() {
   left: 0;
   right: 0;
   top: 92rpx;
-  background: #fff;
+  background: var(--card-bg, #fff);
   border-radius: 12rpx;
   box-shadow: 0 6rpx 20rpx rgba(0,0,0,0.08);
   max-height: 420rpx;
@@ -1215,7 +1216,7 @@ async function handleSubmit() {
 
 .suggest-item {
   padding: 22rpx 24rpx;
-  border-bottom: 1px solid #f0f0f0;
+  border-bottom: 1px solid var(--border-color, #f0f0f0);
 }
 
 .suggest-item:last-child {
@@ -1224,15 +1225,15 @@ async function handleSubmit() {
 
 .suggest-text {
   font-size: 28rpx;
-  color: #111;
+  color: var(--text-primary, #333);
 }
 
 .picker-value.empty {
-  color: #999;
+  color: var(--text-tertiary, #999);
 }
 
 .textarea {
-  background: #f8f9fa;
+  background: var(--input-bg, #f8f9fa);
   border-radius: 8rpx;
   padding: 20rpx 24rpx;
   font-size: 28rpx;
@@ -1243,7 +1244,7 @@ async function handleSubmit() {
 .divider {
   height: 20rpx;
   background: transparent;
-  border-top: 1px solid #f0f0f0;
+  border-top: 1px solid var(--border-color, #f0f0f0);
   margin: 8rpx 0 24rpx;
 }
 

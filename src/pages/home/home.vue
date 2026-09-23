@@ -1,8 +1,17 @@
 <template>
-  <view class="page">
+  <view class="page" :class="themeClass">
     <view class="header">
-      <view class="welcome">机务数据中心</view>
-      <view class="sub-welcome">欢迎使用综合管理系统</view>
+      <view class="header-left">
+        <view class="welcome">机务数据中心APP</view>
+        <view class="sub-welcome">欢迎使用综合管理系统</view>
+      </view>
+      <view class="theme-toggle" @click="toggleTheme">
+        <view class="toggle-track" :class="{ 'toggle-on': isDark }">
+          <view class="toggle-thumb"></view>
+          <text class="toggle-icon-sun">☀</text>
+          <text class="toggle-icon-moon">☾</text>
+        </view>
+      </view>
     </view>
 
     <view class="menu-grid">
@@ -58,8 +67,13 @@ import { onShow, onHide, onUnload } from '@dcloudio/uni-app'
 import { getToken, getClientId } from '../../utils/auth'
 import { getBaseUrl } from '../../utils/request'
 import { getViolations, getSelfViolations } from '../../api/demo'
+import { themeClass, isDark, setTheme } from '../../utils/theme'
 import AppSseBridge from '../../components/AppSseBridge.vue'
 import TopNotification from '../../components/TopNotification.vue'
+
+function toggleTheme() {
+  setTheme(isDark.value ? 'light' : 'dark')
+}
 
 const isAdmin = ref(false)
 const hasAuditPermission = ref(false)
@@ -241,25 +255,95 @@ onUnload(() => {
 <style>
 .page {
   padding: 32rpx;
-  background-color: #f5f7fa;
+  background-color: var(--bg-color, #f5f7fa);
   min-height: 100vh;
   box-sizing: border-box;
 }
 
 .header {
   padding: 40rpx 0 60rpx;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.header-left {
+  flex: 1;
+}
+
+.theme-toggle {
+  padding: 8rpx;
+}
+
+.toggle-track {
+  width: 96rpx;
+  height: 52rpx;
+  border-radius: 26rpx;
+  background: #e0e0e0;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 12rpx;
+  transition: background 0.3s ease;
+  box-sizing: border-box;
+}
+
+.toggle-track.toggle-on {
+  background: #2d3038;
+}
+
+.toggle-thumb {
+  position: absolute;
+  width: 40rpx;
+  height: 40rpx;
+  border-radius: 50%;
+  background: #fff;
+  top: 6rpx;
+  left: 6rpx;
+  box-shadow: 0 2rpx 6rpx rgba(0,0,0,0.2);
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  z-index: 2;
+}
+
+.toggle-track.toggle-on .toggle-thumb {
+  transform: translateX(44rpx);
+}
+
+.toggle-icon-sun, .toggle-icon-moon {
+  font-size: 22rpx;
+  z-index: 1;
+  line-height: 1;
+}
+
+.toggle-icon-sun {
+  opacity: 1;
+  transition: opacity 0.3s ease;
+}
+
+.toggle-track.toggle-on .toggle-icon-sun {
+  opacity: 0.3;
+}
+
+.toggle-icon-moon {
+  opacity: 0.3;
+  transition: opacity 0.3s ease;
+}
+
+.toggle-track.toggle-on .toggle-icon-moon {
+  opacity: 1;
 }
 
 .welcome {
   font-size: 44rpx;
   font-weight: bold;
-  color: #333;
+  color: var(--text-primary, #333);
   margin-bottom: 12rpx;
 }
 
 .sub-welcome {
   font-size: 28rpx;
-  color: #888;
+  color: var(--text-tertiary, #888);
 }
 
 .menu-grid {
@@ -269,17 +353,17 @@ onUnload(() => {
 }
 
 .menu-card {
-  background: #fff;
+  background: var(--card-bg, #fff);
   border-radius: 24rpx;
   padding: 40rpx 20rpx;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 4rpx 16rpx rgba(0,0,0,0.04);
+  box-shadow: 0 4rpx 16rpx var(--shadow, rgba(0,0,0,0.04));
 }
 .menu-card:active {
-  background: #fafafa;
+  background: var(--input-bg, #fafafa);
 }
 
 .icon-box {
@@ -301,6 +385,6 @@ onUnload(() => {
 .menu-text {
   font-size: 30rpx;
   font-weight: 500;
-  color: #333;
+  color: var(--text-primary, #333);
 }
 </style>

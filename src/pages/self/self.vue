@@ -1,5 +1,5 @@
 <template>
-  <view class="page">
+  <view class="page" :class="themeClass">
     <view class="card mt">
       <view v-if="violations.length === 0" class="empty">暂无违章记录</view>
       <view v-for="item in violations" :key="item.id" class="item">
@@ -42,6 +42,7 @@ import { onShow, onHide, onUnload, onPullDownRefresh } from '@dcloudio/uni-app'
 import { ref } from 'vue'
 import { clearToken, getToken } from '../../utils/auth'
 import { getSelfViolations, confirmViolation, appealViolation, fixViolation } from '../../api/demo'
+import { themeClass } from '../../utils/theme'
 
 const violations = ref([])
 const confirmingId = ref(null)
@@ -271,7 +272,7 @@ onPullDownRefresh(async () => {
 <style>
 .page {
   padding: 24rpx;
-  background-color: #f5f7fa;
+  background-color: var(--bg-color, #f5f7fa);
   min-height: 100vh;
 }
 
@@ -294,10 +295,10 @@ onPullDownRefresh(async () => {
 }
 
 .card {
-  background: #fff;
+  background: var(--card-bg, #fff);
   border-radius: 16rpx;
   padding: 24rpx;
-  box-shadow: 0 2rpx 10rpx rgba(0,0,0,0.05);
+  box-shadow: 0 2rpx 10rpx var(--shadow, rgba(0,0,0,0.05));
 }
 
 .mt {
@@ -330,7 +331,7 @@ onPullDownRefresh(async () => {
 
 .btn {
   background: #fff;
-  color: #333;
+  color: var(--text-primary, #333);
   border: 1px solid #ddd;
   font-size: 28rpx;
 }
@@ -342,13 +343,13 @@ onPullDownRefresh(async () => {
 
 .empty {
   padding: 40rpx 0;
-  color: #999;
+  color: var(--text-tertiary, #999);
   text-align: center;
 }
 
 .item {
   padding: 24rpx 0;
-  border-bottom: 1px solid #f0f0f0;
+  border-bottom: 1px solid var(--border-color, #f0f0f0);
 }
 .item:last-child {
   border-bottom: none;
@@ -357,7 +358,7 @@ onPullDownRefresh(async () => {
 .item-title {
   font-size: 30rpx;
   font-weight: bold;
-  color: #333;
+  color: var(--text-primary, #333);
   display: flex;
   align-items: center;
   gap: 8px;
@@ -392,13 +393,13 @@ onPullDownRefresh(async () => {
 .item-meta {
   margin-top: 10rpx;
   font-size: 24rpx;
-  color: #888;
+  color: var(--text-tertiary, #888);
 }
 
 .item-desc {
   margin-top: 10rpx;
   font-size: 26rpx;
-  color: #555;
+  color: var(--text-secondary, #555);
   display: -webkit-box;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
@@ -409,7 +410,7 @@ onPullDownRefresh(async () => {
   margin-top: 24rpx;
   display: flex;
   justify-content: flex-end;
-  border-top: 1px solid #f0f0f0;
+  border-top: 1px solid var(--border-color, #f0f0f0);
   padding-top: 16rpx;
   gap: 16rpx;
 }
@@ -442,7 +443,7 @@ onPullDownRefresh(async () => {
 
 .view-btn {
   background: #fff;
-  color: #333;
+  color: var(--text-primary, #333);
   border: 1px solid #ddd;
 }
 </style>

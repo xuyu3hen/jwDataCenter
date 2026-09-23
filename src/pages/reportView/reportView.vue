@@ -1,5 +1,5 @@
 <template>
-  <view class="page">
+  <view class="page" :class="themeClass">
     <view v-if="!url" class="tips">
       <text class="tips-text">{{ tipsText }}</text>
     </view>
@@ -11,6 +11,7 @@
 import { ref } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import { getBaseUrl } from '../../utils/request'
+import { themeClass } from '../../utils/theme'
 
 const DEFAULT_HOST = 'https://js.whrailway.cn:9091/jwdzh/'
 const url = ref('')
@@ -54,7 +55,7 @@ onLoad((options) => {
 <style>
 .page {
   height: 100vh;
-  background: #f5f7fa;
+  background: var(--bg-color, #f5f7fa);
 }
 
 .tips {
@@ -68,7 +69,7 @@ onLoad((options) => {
 
 .tips-text {
   font-size: 28rpx;
-  color: #86909c;
+  color: var(--text-tertiary, #86909c);
   text-align: center;
 }
 </style>

@@ -1,5 +1,5 @@
 <template>
-  <view class="page">
+  <view class="page" :class="themeClass">
     <!-- 顶部导航 -->
     <view class="header">
       <view class="back" @click="goBack">
@@ -44,6 +44,7 @@ import { ref } from 'vue'
 import { onShow, onHide, onUnload } from '@dcloudio/uni-app'
 import { clearToken, getToken, getClientId } from '../../utils/auth'
 import { getBaseUrl } from '../../utils/request'
+import { themeClass } from '../../utils/theme'
 import AppSseBridge from '../../components/AppSseBridge.vue'
 import TopNotification from '../../components/TopNotification.vue'
 
@@ -149,7 +150,7 @@ onUnload(() => {
   height: 100vh;
   display: flex;
   flex-direction: column;
-  background-color: #f4f6f8;
+  background-color: var(--bg-color, #f5f7fa);
 }
 
 .header {
@@ -197,16 +198,16 @@ onUnload(() => {
   justify-content: center;
   align-items: center;
   height: 400rpx;
-  color: #999;
+  color: var(--text-tertiary, #999);
   font-size: 28rpx;
 }
 
 .message-item {
-  background-color: #fff;
+  background-color: var(--card-bg, #fff);
   border-radius: 12rpx;
   padding: 24rpx;
   margin-bottom: 20rpx;
-  box-shadow: 0 2rpx 8rpx rgba(0,0,0,0.04);
+  box-shadow: 0 2rpx 8rpx var(--shadow, rgba(0,0,0,0.05));
 }
 
 .msg-header {
@@ -214,13 +215,13 @@ onUnload(() => {
   justify-content: space-between;
   align-items: center;
   margin-bottom: 16rpx;
-  border-bottom: 1px solid #f0f0f0;
+  border-bottom: 1px solid var(--border-color, #f0f0f0);
   padding-bottom: 16rpx;
 }
 
 .msg-time {
   font-size: 24rpx;
-  color: #999;
+  color: var(--text-tertiary, #999);
 }
 
 .msg-tag {
@@ -233,7 +234,7 @@ onUnload(() => {
 
 .msg-content {
   font-size: 28rpx;
-  color: #333;
+  color: var(--text-primary, #333);
   line-height: 1.5;
 }
 </style>
