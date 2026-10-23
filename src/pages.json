@@ -51,9 +51,16 @@
       }
     },
     {
+      "path": "pages/reportList/reportList",
+      "style": {
+        "navigationBarTitleText": "数据报表"
+      }
+    },
+    {
       "path": "pages/reportView/reportView",
       "style": {
-        "navigationBarTitleText": "各机务段自然情况表"
+        "navigationBarTitleText": "数据报表",
+        "pageOrientation": "auto"
       }
     },
     {

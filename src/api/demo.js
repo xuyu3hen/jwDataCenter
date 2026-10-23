@@ -11,10 +11,7 @@ function normalizeApiBaseUrl(raw) {
 function getDatacenterBaseUrl() {
   const baseUrl = normalizeApiBaseUrl(getBaseUrl())
   if (!baseUrl) return ''
-  if (baseUrl.includes('/jwxt/prod-api')) return baseUrl
-  if (baseUrl.endsWith('/prod-api')) return baseUrl
-  if (baseUrl.includes('/jwxt')) return `${baseUrl}/prod-api`
-  return `${baseUrl}/jwxt/prod-api`
+  return baseUrl
 }
 
 function datacenterRequest({ url, method = 'GET', data, header }) {

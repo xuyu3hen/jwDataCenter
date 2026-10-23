@@ -55,7 +55,7 @@ import { themeClass } from '../../utils/theme'
 
 // 隐藏参数，根据提供的图片设置默认值
 // #ifdef H5
-const baseUrl = ref('/jwxt/prod-api/')
+const baseUrl = ref('/')
 // #endif
 // #ifndef H5
 const baseUrl = ref('https://10.102.124.50/jwxt/prod-api/')
@@ -208,23 +208,28 @@ function handleLogin() {
 
 <style>
 .page {
-  padding: 32rpx;
-  padding-top: 100rpx;
-  background-color: var(--bg-color, #f5f7fa);
   min-height: 100vh;
+  padding: 80rpx 40rpx;
+  background-color: var(--bg-color, #f5f7fa);
+  box-sizing: border-box;
 }
 
 .card {
+  width: 100%;
+  max-width: 640rpx;
+  margin: 20vh auto 0;
   background: var(--card-bg, #fff);
-  border-radius: 20rpx;
-  padding: 32rpx;
+  border-radius: 24rpx;
+  padding: 48rpx 40rpx;
+  box-shadow: 0 8rpx 40rpx rgba(0, 0, 0, 0.08);
 }
 
 .title {
   font-size: 40rpx;
   font-weight: 700;
-  margin-bottom: 24rpx;
+  margin-bottom: 28rpx;
   color: var(--text-primary, #333);
+  text-align: center;
 }
 
 .field {
@@ -308,3 +313,4 @@ function handleLogin() {
   padding: 0 10rpx;
 }
 </style>
+

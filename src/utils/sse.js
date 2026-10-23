@@ -3,13 +3,10 @@ import { getBaseUrl } from './request'
 
 let requestTask = null;
 
-// 规范化后端请求前缀，保持和真实请求一致
+// 规范化后端请求前缀
 function getApiBaseUrl() {
   const baseUrl = (getBaseUrl() || '').trim().replace(/\/+$/, '')
-  if (baseUrl.includes('/jwxt/prod-api')) return baseUrl
-  if (baseUrl.endsWith('/prod-api')) return baseUrl
-  if (baseUrl.includes('/jwxt')) return `${baseUrl}/prod-api`
-  return `${baseUrl}/jwxt/prod-api`
+  return baseUrl
 }
 
 export function connectSSE(onMessageCallback) {

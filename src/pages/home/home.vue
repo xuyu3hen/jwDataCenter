@@ -39,6 +39,12 @@
         </view>
         <text class="menu-text">审核申诉</text>
       </view>
+      <view class="menu-card" @click="go('/pages/reportList/reportList')">
+        <view class="icon-box" style="background: #2e7d32;">
+          <text class="icon-text">表</text>
+        </view>
+        <text class="menu-text">数据报表</text>
+      </view>
       <view class="menu-card" @click="go('/pages/report/report')">
         <view class="icon-box" style="background: #455a64;">
           <text class="icon-text">人</text>
