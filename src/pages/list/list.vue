@@ -78,6 +78,7 @@ import { ref } from 'vue'
 import { getToken } from '../../utils/auth'
 import { getViolations, getReportDeptListByDepotId } from '../../api/demo'
 import { themeClass } from '../../utils/theme'
+import { useUserStore } from '../../store/user'
 
 const violations = ref([])
 const pageNum = ref(1)
@@ -140,8 +141,7 @@ function clearDept() {
 
 async function loadDepartments() {
   try {
-    const userInfo = uni.getStorageSync('user_info') || {}
-    const user = userInfo.user || userInfo.data || userInfo || {}
+    const user = useUserStore().user
     const parentIds = user.parentDeptIdList
     const depotId = Array.isArray(parentIds) ? parentIds[0] : (user.parentDeptId || '')
     if (!depotId) return

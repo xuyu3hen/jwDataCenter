@@ -7,6 +7,12 @@
       }
     },
     {
+      "path": "pages/violationMenu/violationMenu",
+      "style": {
+        "navigationBarTitleText": "违章违纪"
+      }
+    },
+    {
       "path": "pages/self/self",
       "style": {
         "navigationBarTitleText": "我的违章记录",
@@ -53,13 +59,13 @@
     {
       "path": "pages/reportList/reportList",
       "style": {
-        "navigationBarTitleText": "数据报表"
+        "navigationBarTitleText": "机务数据中心报表"
       }
     },
     {
       "path": "pages/reportView/reportView",
       "style": {
-        "navigationBarTitleText": "数据报表",
+        "navigationBarTitleText": "机务数据中心报表",
         "pageOrientation": "auto"
       }
     },

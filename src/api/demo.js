@@ -1,43 +1,8 @@
-import { setToken, setClientId, getToken, getClientId } from '../utils/auth'
-import { request, getBaseUrl } from '../utils/request'
+import { setToken, setClientId } from '../utils/auth'
+import { request, getBaseUrl, getAuthHeaders } from '../utils/request'
 
 const VIOLATIONS_KEY = 'demo_violations'
 export const WEBVIEW_CLIENT_ID = 'e5cd7e4891bf95d1d19206ce24a7b32e'
-
-function normalizeApiBaseUrl(raw) {
-  return String(raw || '').trim().replace(/\/+$/, '')
-}
-
-function getDatacenterBaseUrl() {
-  const baseUrl = normalizeApiBaseUrl(getBaseUrl())
-  if (!baseUrl) return ''
-  return baseUrl
-}
-
-function datacenterRequest({ url, method = 'GET', data, header }) {
-  const baseUrl = getDatacenterBaseUrl()
-  const token = getToken()
-  const clientId = getClientId()
-  const finalUrl = baseUrl ? `${baseUrl}${url}` : url
-
-  console.log('【Datacenter Request】请求地址:', finalUrl)
-  console.log('【Datacenter Request】请求参数:', JSON.stringify(data || {}))
-
-  return new Promise((resolve, reject) => {
-    uni.request({
-      url: finalUrl,
-      method,
-      data,
-      header: {
-        ...(header || {}),
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        ...(clientId ? { ClientId: clientId } : {})
-      },
-      success: (res) => resolve(res),
-      fail: (err) => reject(err)
-    })
-  })
-}
 
 function nowIso() {
   const d = new Date()
@@ -121,42 +86,30 @@ function extractToken(data) {
 }
 
 async function requestLoginTokenByUrl(url, payload) {
-  const baseUrl = getBaseUrl()
-  const finalUrl = baseUrl ? `${baseUrl}${url}` : url
-
-  return new Promise((resolve, reject) => {
-    uni.request({
-      url: finalUrl,
-      method: 'POST',
-      data: payload,
-      header: {
-        'Content-Type': 'application/json'
-      },
-      success: (res) => {
-        if (res?.statusCode !== 200) {
-          reject(new Error(res?.data?.msg || res?.data?.message || `登录失败（${res?.statusCode || '未知状态码'}）`))
-          return
-        }
-
-        const data = res?.data || {}
-        if (data.code && data.code !== 200 && data.code !== 0) {
-          reject(new Error(data.msg || data.message || `登录失败（${data.code}）`))
-          return
-        }
-
-        const token = extractToken(data)
-        if (!token) {
-          reject(new Error('登录失败：未获取到token'))
-          return
-        }
-
-        resolve({ token, raw: data })
-      },
-      fail: (err) => {
-        reject(err)
-      }
-    })
+  const res = await request({
+    url,
+    method: 'POST',
+    data: payload,
+    header: {
+      'Content-Type': 'application/json'
+    }
   })
+
+  if (res?.statusCode !== 200) {
+    throw new Error(res?.data?.msg || res?.data?.message || `登录失败（${res?.statusCode || '未知状态码'}）`)
+  }
+
+  const data = res?.data || {}
+  if (data.code && data.code !== 200 && data.code !== 0) {
+    throw new Error(data.msg || data.message || `登录失败（${data.code}）`)
+  }
+
+  const token = extractToken(data)
+  if (!token) {
+    throw new Error('登录失败：未获取到token')
+  }
+
+  return { token, raw: data }
 }
 
 export async function getWebViewToken({ username, password, clientId = WEBVIEW_CLIENT_ID, grantType = 'password', tenantId = '', code = '', uuid = '' }) {
@@ -366,7 +319,7 @@ export async function addViolation(payload) {
 }
 
 export async function listBaseTable(params) {
-  const res = await datacenterRequest({
+  const res = await request({
     url: '/datacenter/baseTable/select/list',
     method: 'POST',
     data: params || {}
@@ -375,7 +328,7 @@ export async function listBaseTable(params) {
 }
 
 export async function saveBaseTable(payload) {
-  const res = await datacenterRequest({
+  const res = await request({
     url: '/datacenter/baseTable/save',
     method: 'POST',
     data: payload || {}
@@ -395,7 +348,7 @@ export async function saveBaseTable(payload) {
 }
 
 export async function listDepotCondition(params) {
-  const res = await datacenterRequest({
+  const res = await request({
     url: '/datacenter/tableData/depot-condition/select/list',
     method: 'POST',
     data: params || {}
@@ -404,7 +357,7 @@ export async function listDepotCondition(params) {
 }
 
 export async function saveDepotCondition(payload) {
-  const res = await datacenterRequest({
+  const res = await request({
     url: '/datacenter/tableData/depot-condition/save',
     method: 'POST',
     data: payload || {}
@@ -425,18 +378,13 @@ export async function saveDepotCondition(payload) {
 
 export async function uploadFile(filePath) {
   const baseUrl = getBaseUrl()
-  const token = getToken()
-  const clientId = getClientId()
 
   return new Promise((resolve, reject) => {
     uni.uploadFile({
       url: `${baseUrl}/file/upload`,
       filePath: filePath,
       name: 'file',
-      header: {
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        ...(clientId ? { ClientId: clientId } : {})
-      },
+      header: getAuthHeaders(),
       success: (uploadFileRes) => {
         try {
           const res = JSON.parse(uploadFileRes.data)

@@ -15,29 +15,11 @@
     </view>
 
     <view class="menu-grid">
-      <view class="menu-card" @click="go('/pages/submit/submit')">
+      <view class="menu-card" @click="go('/pages/violationMenu/violationMenu')">
         <view class="icon-box" style="background: #2b5a8c;">
-          <text class="icon-text">录</text>
+          <text class="icon-text">违</text>
         </view>
-        <text class="menu-text">新增违章</text>
-      </view>
-      <view class="menu-card" v-if="hasListPermission" @click="go('/pages/list/list?mode=all')">
-        <view class="icon-box" style="background: #3f51b5;">
-          <text class="icon-text">查</text>
-        </view>
-        <text class="menu-text">全部违章</text>
-      </view>
-      <view class="menu-card" @click="go('/pages/self/self')">
-        <view class="icon-box" style="background: #d46b08;">
-          <text class="icon-text">我</text>
-        </view>
-        <text class="menu-text">我的违章</text>
-      </view>
-      <view class="menu-card" v-if="hasAuditPermission" @click="go('/pages/appealReview/appealReview')">
-        <view class="icon-box" style="background: #8c1d18;">
-          <text class="icon-text">审</text>
-        </view>
-        <text class="menu-text">审核申诉</text>
+        <text class="menu-text">违章违纪</text>
       </view>
       <view class="menu-card" @click="go('/pages/reportList/reportList')">
         <view class="icon-box" style="background: #2e7d32;">
@@ -52,128 +34,48 @@
         <text class="menu-text">个人中心</text>
       </view>
     </view>
-
-    <!-- SSE 桥接组件 -->
-    <AppSseBridge 
-      :bridgeData="sseBridgeData" 
-      @message="handleGlobalMessage"
-      @open="onSseOpen"
-      @error="onSseError"
-      @close="onSseClose"
-    />
-
-    <!-- 顶部消息通知组件 -->
-    <TopNotification ref="notificationRef" />
   </view>
 </template>
 
 <script setup>
 import { ref } from 'vue'
 import { onShow, onHide, onUnload } from '@dcloudio/uni-app'
-import { getToken, getClientId } from '../../utils/auth'
-import { getBaseUrl } from '../../utils/request'
 import { getViolations, getSelfViolations } from '../../api/demo'
 import { themeClass, isDark, setTheme } from '../../utils/theme'
-import AppSseBridge from '../../components/AppSseBridge.vue'
-import TopNotification from '../../components/TopNotification.vue'
+import { useUserStore } from '../../store/user'
 
 function toggleTheme() {
   setTheme(isDark.value ? 'light' : 'dark')
 }
 
-const isAdmin = ref(false)
-const hasAuditPermission = ref(false)
-const hasListPermission = ref(false)
+const userStore = useUserStore()
 const latestViolationId = ref('')
 
-const notificationRef = ref(null)
-
-// SSE 桥接通信数据
-const sseBridgeData = ref({})
-
-function getApiBaseUrl() {
-  return (getBaseUrl() || '').trim().replace(/\/+$/, '')
-}
-
-function startSSE() {
-  const token = getToken()
-  const clientId = getClientId()
-  if (!token) return
-
-  const baseUrl = getApiBaseUrl()
-  const sseUrl = `${baseUrl}/resource/sse`
-  console.log('【SSE】准备通过 RenderJS 桥接连接:', sseUrl)
-
-  // 每次连接加上时间戳 seq，触发 watch 更新
-  sseBridgeData.value = {
-    action: 'connect',
-    seq: Date.now(),
-    url: sseUrl,
-    header: {
-      'Authorization': `Bearer ${token}`,
-      'ClientId': clientId
-    }
-  }
-}
-
-function stopSSE() {
-  sseBridgeData.value = {
-    action: 'disconnect',
-    seq: Date.now()
-  }
-}
-
-const onSseOpen = (res) => {
-  console.log('【SSE】请求通道已建立', res)
-}
-
-const onSseError = (err) => {
-  console.error('【SSE】连接失败', err)
-  // 5秒后重连
-  setTimeout(() => startSSE(), 5000)
-}
-
-const onSseClose = (res) => {
-  console.log('【SSE】连接已关闭', res)
-}
-
 function ensureLogin() {
-  const token = getToken()
-  if (!token) {
+  if (!userStore.isLogin) {
     uni.reLaunch({ url: '/pages/login/login' })
     return false
   }
-  const userInfo = uni.getStorageSync('user_info') || {}
-  const user = userInfo.user || userInfo.data || userInfo || {}
-  const permissions = userInfo.permissions || []
-  
-  isAdmin.value = user.userName === 'admin' || user.admin || (user.roles && user.roles.some(r => r.roleKey === 'admin'))
-  hasAuditPermission.value = permissions.includes('*:*:*') || permissions.includes('safety:violation:audit')
-  hasListPermission.value = permissions.includes('*:*:*') || permissions.includes('safety:violationSta:all') || permissions.includes('safety:violationSta:depot') || permissions.includes('safety:violationSta:workshop')
-  
   return true
 }
 
 let pollTimer = null
 
+// 查询最新一条违章（管理员查全部，普通员工查本人）
+async function fetchLatestViolation() {
+  if (userStore.isAdmin) {
+    return await getViolations({ pageNum: 1, pageSize: 1 })
+  }
+  const workNumber = userStore.workNumber
+  return workNumber ? await getSelfViolations({ workNumber }) : []
+}
+
 function startPolling() {
   if (pollTimer) clearInterval(pollTimer)
   pollTimer = setInterval(async () => {
     try {
-      const userInfo = uni.getStorageSync('user_info') || {}
-      const user = userInfo.user || userInfo.data || userInfo || {}
-      const isAdm = user.userName === 'admin' || user.admin || (user.roles && user.roles.some(r => r.roleKey === 'admin'))
-      const workNumber = user.workCardNumber || user.workNumber || ''
+      const newList = await fetchLatestViolation() || []
 
-      let list = []
-      if (!isAdm) {
-        list = await getSelfViolations({ workNumber })
-      } else {
-        list = await getViolations({ pageNum: 1, pageSize: 1 })
-      }
-      
-      const newList = list || []
-      
       if (newList.length > 0) {
         const currentLatestId = String(newList[0].id)
         if (latestViolationId.value && latestViolationId.value !== currentLatestId) {
@@ -206,55 +108,27 @@ function go(url) {
   uni.navigateTo({ url })
 }
 
-// 接收到 SSE 消息时的全局弹窗回调
-const handleGlobalMessage = (msgData) => {
-  // 震动提示
-  uni.vibrateShort({
-    success: function () {
-        console.log('vibrateShort success');
-    }
-  });
-  
-  // 弹出自定义顶部横幅通知
-  if (notificationRef.value) {
-    notificationRef.value.show(msgData)
-  }
-}
-
 onShow(async () => {
   if (ensureLogin()) {
-    // 开启 SSE 消息接收 (通过 RenderJS 桥接)
-    startSSE()
-    
-    // 首次进入获取一次最新ID用于后续比对
+    // 每次进入首页同步一次最新登录态，并取一次最新ID作为轮询比对基线
+    userStore.hydrate()
     try {
-      const userInfo = uni.getStorageSync('user_info') || {}
-      const user = userInfo.user || userInfo.data || userInfo || {}
-      const isAdm = user.userName === 'admin' || user.admin || (user.roles && user.roles.some(r => r.roleKey === 'admin'))
-      const workNumber = user.workCardNumber || user.workNumber || ''
-      let list = []
-      if (!isAdm) {
-        list = await getSelfViolations({ workNumber })
-      } else {
-        list = await getViolations({ pageNum: 1, pageSize: 1 })
-      }
+      const list = await fetchLatestViolation()
       if (list && list.length > 0) {
         latestViolationId.value = String(list[0].id)
       }
-    } catch(e) {}
-    
+    } catch (e) {}
+
     startPolling()
   }
 })
 
 onHide(() => {
   stopPolling()
-  stopSSE()
 })
 
 onUnload(() => {
   stopPolling()
-  stopSSE()
 })
 </script>
 

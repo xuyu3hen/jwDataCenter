@@ -43,6 +43,7 @@ import { ref } from 'vue'
 import { clearToken, getToken } from '../../utils/auth'
 import { getSelfViolations, confirmViolation, appealViolation, fixViolation } from '../../api/demo'
 import { themeClass } from '../../utils/theme'
+import { useUserStore } from '../../store/user'
 
 const violations = ref([])
 const confirmingId = ref(null)
@@ -55,10 +56,7 @@ function ensureLogin() {
 }
 
 function getQueryParams() {
-  const userInfo = uni.getStorageSync('user_info') || {}
-  const user = userInfo.user || userInfo.data || userInfo || {}
-  // 改为使用 workCardNumber
-  const workNumber = user.workCardNumber || user.workNumber || ''
+  const workNumber = useUserStore().workNumber
 
   const params = { workNumber }
   return params

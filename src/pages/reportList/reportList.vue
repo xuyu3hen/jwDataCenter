@@ -2,7 +2,7 @@
   <view class="page" :class="themeClass">
     <!-- 顶部说明 -->
     <view class="header">
-      <view class="header-title">机务系统数据报表</view>
+      <view class="header-title">机务数据中心报表</view>
       <view class="header-sub">共 {{ tables.length }} 张表 · 最新数据：{{ latest.year }} 年 {{ latest.month }} 月</view>
       <view class="header-tip">数据于每月 5 号更新上月，点击表名查看/填报</view>
     </view>

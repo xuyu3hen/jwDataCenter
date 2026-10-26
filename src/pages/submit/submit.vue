@@ -261,6 +261,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { themeClass } from '../../utils/theme'
+import { useUserStore } from '../../store/user'
 import { addViolation, searchUsersByWorkCardNumber, searchUsersByNickNamePy, searchUsersByNickName, getUserDetailByWorkCardNumber, getDictData, getReportDeptListByDepotId, getViolationRuleListBySector } from '../../api/demo'
 
 const form = ref({
@@ -984,8 +985,7 @@ async function selectReporter(item) {
 }
 
 onMounted(() => {
-  const cached = uni.getStorageSync('user_info')
-  const user = cached?.user || {}
+  const user = useUserStore().user
   if (!form.value.reporterName) {
     form.value.reporterName = user.nickName || user.userName || ''
   }

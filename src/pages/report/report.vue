@@ -30,12 +30,13 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
-import { clearToken } from '../../utils/auth'
 import { getUserInfo } from '../../api/demo'
 import { themeClass } from '../../utils/theme'
+import { useUserStore } from '../../store/user'
 
 import { getBaseUrl } from '../../utils/request'
 
+const userStore = useUserStore()
 const userInfo = ref({})
 
 const avatarUrl = computed(() => {
@@ -55,12 +56,12 @@ onShow(() => {
 
 async function fetchUserInfo() {
   try {
-    const cached = uni.getStorageSync('user_info')
+    const cached = userStore.userInfo
     if (cached && cached.user) applyUserInfo(cached)
-    
+
     const data = await getUserInfo()
     applyUserInfo(data)
-    uni.setStorageSync('user_info', data)
+    userStore.setUserInfo(data)
   } catch (e) {
     uni.showToast({
       title: e.message || '获取用户信息失败',
@@ -81,7 +82,7 @@ function getPostLabel(code) {
 }
 
 function logout() {
-  clearToken()
+  userStore.logout()
   uni.reLaunch({ url: '/pages/login/login' })
 }
 

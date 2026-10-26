@@ -11,6 +11,11 @@
       <!-- #ifdef H5 -->
       <button class="bar-btn" @click="openInBrowser">新窗口打开</button>
       <!-- #endif -->
+      <!-- #ifndef H5 -->
+      <button class="bar-btn bar-btn-rotate" @click="toggleOrientation">
+        {{ isLandscape ? '竖屏' : '横屏' }}
+      </button>
+      <!-- #endif -->
     </view>
 
     <!-- H5 端：内嵌 iframe 展示帆软报表 -->
@@ -32,7 +37,7 @@
 
 <script setup>
 import { ref } from 'vue'
-import { onLoad, onReady, onUnload } from '@dcloudio/uni-app'
+import { onLoad, onReady, onUnload, onResize } from '@dcloudio/uni-app'
 import { getBaseUrl } from '../../utils/request'
 import { themeClass } from '../../utils/theme'
 import { getReportTable, getLatestMonth, DEFAULT_ROOT_DEPT_ID } from '../../utils/reportTables'
@@ -50,6 +55,7 @@ const monthValue = ref(`${year.value}-${month.value}`)
 const rootDeptId = ref(DEFAULT_ROOT_DEPT_ID)
 const deptId = ref('all')
 const url = ref('')
+const isLandscape = ref(false)
 let subWv = null
 
 // 注入到帆软报表页的自适应脚本：
@@ -158,6 +164,29 @@ function hideSubWv() {
 function showSubWv() {
   if (subWv) subWv.show('none')
 }
+
+// 横竖屏切换：App 端 pageOrientation 不生效，用 plus 运行时强制锁定
+function toggleOrientation() {
+  // #ifdef APP-PLUS
+  if (isLandscape.value) {
+    plus.screen.lockOrientation('portrait-primary')
+  } else {
+    plus.screen.lockOrientation('landscape-primary')
+  }
+  // #endif
+}
+
+// 根据当前屏幕方向重新铺满子 webview，并重新自适应报表宽度
+function relayoutSubWv() {
+  if (!subWv) return
+  const sys = uni.getSystemInfoSync()
+  const landscape = sys.windowWidth > sys.windowHeight
+  isLandscape.value = landscape
+  const top = (sys.statusBarHeight || 0) + NAV_HEIGHT + BAR_HEIGHT
+  subWv.setStyle({ top, left: 0, right: 0, bottom: 0 })
+  setTimeout(injectFit, 300)
+  setTimeout(injectFit, 1000)
+}
 // #endif
 
 function onMonthChange(e) {
@@ -184,6 +213,11 @@ function openInBrowser() {
 }
 
 onLoad((options) => {
+  // #ifdef APP-PLUS
+  // 每次进入报表页先锁竖屏，由页内按钮主动切横屏
+  plus.screen.lockOrientation('portrait-primary')
+  isLandscape.value = false
+  // #endif
   const key = options?.key ? decodeURIComponent(options.key) : 'depotCondition'
   table.value = getReportTable(key)
   if (!table.value) {
@@ -208,13 +242,21 @@ onReady(() => {
   if (!url.value) return
   createSubWebview()
   setTimeout(() => {
-    uni.showToast({ title: '双指缩放或横屏可查看完整报表', icon: 'none', duration: 2500 })
+    uni.showToast({ title: '点右上角横屏或双指缩放查看完整报表', icon: 'none', duration: 2500 })
   }, 1200)
   // #endif
 })
 
 // #ifdef APP-PLUS
+// 屏幕旋转后重排原生子 webview（按钮切换/物理旋转都会触发）
+onResize(() => {
+  setTimeout(relayoutSubWv, 200)
+})
+
 onUnload(() => {
+  // 离开报表页恢复竖屏，保证其他页面始终竖屏
+  plus.screen.lockOrientation('portrait-primary')
+  isLandscape.value = false
   if (subWv) {
     subWv.close()
     subWv = null
@@ -272,6 +314,11 @@ onUnload(() => {
   padding: 0 14px;
   height: 32px;
   line-height: 32px;
+}
+
+.bar-btn-rotate {
+  background: #2e7d32;
+  min-width: 64px;
 }
 
 /* H5 iframe 区域 / App 占位（App 实际显示由原生子 webview 覆盖） */

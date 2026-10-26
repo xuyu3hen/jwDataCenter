@@ -52,6 +52,9 @@ import { ref, onMounted } from 'vue'
 import { login, getUserInfo, getDictData } from '../../api/demo'
 import { setBaseUrl } from '../../utils/request'
 import { themeClass } from '../../utils/theme'
+import { useUserStore } from '../../store/user'
+
+const userStore = useUserStore()
 
 // 隐藏参数，根据提供的图片设置默认值
 // #ifdef H5
@@ -141,6 +144,8 @@ function handleLogin() {
       username: username.value.trim(),
       password: password.value
     }).then(async () => {
+      // token 已由 login 写入本地，同步到 store
+      userStore.hydrate()
       // 处理记住密码逻辑
       let accounts = uni.getStorageSync('saved_accounts')
       if (!Array.isArray(accounts)) {
@@ -167,7 +172,7 @@ function handleLogin() {
 
       try {
         const userInfo = await getUserInfo()
-        uni.setStorageSync('user_info', userInfo)
+        userStore.setUserInfo(userInfo)
 
         const dictTasks = [
           { type: 'zgglxt_xgw', key: 'dict_zgglxt_xgw' },

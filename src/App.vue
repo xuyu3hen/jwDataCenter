@@ -12,6 +12,8 @@ onLaunch(() => {
     plus.navigator.closeSplashscreen();
     console.log('【App Launch】手动关闭启动页');
   }, 2000);
+  // 默认全局锁竖屏（仅报表页可在页内切换横屏）
+  plus.screen.lockOrientation('portrait-primary')
   // #endif
 
   // 应用主题

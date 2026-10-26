@@ -8,6 +8,7 @@
   "app-plus": {
     "usingComponents": true,
     "nvueStyleCompiler": "uni-app",
+    "screenOrientation": ["portrait-primary", "landscape-primary", "landscape-secondary"],
     "splashscreen": {
       "alwaysShowBeforeRender": false,
       "waiting": true,
