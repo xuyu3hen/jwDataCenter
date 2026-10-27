@@ -21,7 +21,7 @@
         </view>
         <text class="menu-text">违章违纪</text>
       </view>
-      <view class="menu-card" @click="go('/pages/reportList/reportList')">
+      <view class="menu-card" @click="go('/pages/reportCategory/reportCategory')">
         <view class="icon-box" style="background: #2e7d32;">
           <text class="icon-text">表</text>
         </view>

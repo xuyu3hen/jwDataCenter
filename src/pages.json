@@ -57,9 +57,15 @@
       }
     },
     {
-      "path": "pages/reportList/reportList",
+      "path": "pages/reportCategory/reportCategory",
       "style": {
         "navigationBarTitleText": "机务数据中心报表"
+      }
+    },
+    {
+      "path": "pages/reportList/reportList",
+      "style": {
+        "navigationBarTitleText": "月度报表"
       }
     },
     {

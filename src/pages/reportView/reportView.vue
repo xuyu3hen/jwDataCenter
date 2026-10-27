@@ -1,21 +1,52 @@
 <template>
   <view class="page" :class="themeClass">
-    <!-- 顶部条件栏（固定 44px，子 webview 从其下方开始铺） -->
+    <!-- 顶部条件栏 -->
     <view class="bar" v-if="table">
-      <view class="bar-item">
-        <text class="bar-label">月份</text>
-        <picker mode="date" fields="month" :value="monthValue" @change="onMonthChange" @cancel="showSubWv">
-          <view class="picker-box" @click="hideSubWv">{{ monthValue }} ▾</view>
-        </picker>
+      <!-- 第一行：日期/月份选择器；hideDept 时查询+横屏也放这一行 -->
+      <view class="bar-row">
+        <view class="bar-item">
+          <text class="bar-label">{{ isDaily ? '日期' : '月份' }}</text>
+          <picker v-if="!isDaily" mode="date" fields="month" :value="monthValue" @change="onMonthChange" @cancel="showSubWv">
+            <view class="picker-box" @click="hideSubWv">{{ monthValue }} ▾</view>
+          </picker>
+          <picker v-else mode="date" :value="dayValue" @change="onDayChange" @cancel="showSubWv">
+            <view class="picker-box" @click="hideSubWv">{{ dayValue }} ▾</view>
+          </picker>
+        </view>
+        <!-- hideDept：查询 + 横屏跟日期同一行 -->
+        <template v-if="table?.params?.hideDept">
+          <button class="bar-btn bar-btn-query" @click="onQuery">查询</button>
+          <!-- #ifndef H5 -->
+          <button class="bar-btn bar-btn-rotate" @click="toggleOrientation">
+            {{ isLandscape ? '竖屏' : '横屏' }}
+          </button>
+          <!-- #endif -->
+          <!-- #ifdef H5 -->
+          <button class="bar-btn" @click="openInBrowser">新窗口打开</button>
+          <!-- #endif -->
+        </template>
       </view>
-      <!-- #ifdef H5 -->
-      <button class="bar-btn" @click="openInBrowser">新窗口打开</button>
-      <!-- #endif -->
-      <!-- #ifndef H5 -->
-      <button class="bar-btn bar-btn-rotate" @click="toggleOrientation">
-        {{ isLandscape ? '竖屏' : '横屏' }}
-      </button>
-      <!-- #endif -->
+
+      <!-- 第二行：上报单位下拉 + 查询 + 横屏（同一行） -->
+      <view class="bar-row" v-if="!(table?.params?.hideDept)">
+        <view class="bar-item bar-item-flex">
+          <text class="bar-label">{{ isDaily && table?.params?.deptKey === 'depotId' ? '单位' : '上报单位' }}</text>
+          <picker :value="deptIndex" :range="deptPickerOptions" @change="onDeptChange">
+            <view class="picker-box picker-box-wide" @click="hideSubWv">
+              {{ deptIndex >= 0 ? deptPickerOptions[deptIndex] : '请选择' }} ▾
+            </view>
+          </picker>
+        </view>
+        <button class="bar-btn bar-btn-query" @click="onQuery">查询</button>
+        <!-- #ifndef H5 -->
+        <button class="bar-btn bar-btn-rotate" @click="toggleOrientation">
+          {{ isLandscape ? '竖屏' : '横屏' }}
+        </button>
+        <!-- #endif -->
+        <!-- #ifdef H5 -->
+        <button class="bar-btn" @click="openInBrowser">新窗口打开</button>
+        <!-- #endif -->
+      </view>
     </view>
 
     <!-- H5 端：内嵌 iframe 展示帆软报表 -->
@@ -36,24 +67,62 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { onLoad, onReady, onUnload, onResize } from '@dcloudio/uni-app'
 import { getBaseUrl } from '../../utils/request'
 import { themeClass } from '../../utils/theme'
-import { getReportTable, getLatestMonth, DEFAULT_ROOT_DEPT_ID } from '../../utils/reportTables'
+import { getReportTable, getLatestMonth, getLatestDay, DEFAULT_ROOT_DEPT_ID, REPORT_DEPT_LIST } from '../../utils/reportTables'
+import { useUserStore } from '../../store/user'
 
-const BAR_HEIGHT = 44
 const NAV_HEIGHT = 44
 const SUB_WV_ID = 'reportSubWebview'
 
+const userStore = useUserStore()
+
+// 和 list.vue / submit.vue 保持一致：parentDeptIdList[0] 即根部门 ID
+function resolveRootDeptId() {
+  const u = userStore.user || {}
+  const parentIds = u.parentDeptIdList
+  return (
+    (Array.isArray(parentIds) && parentIds[0])
+    || u.parentDeptId
+    || DEFAULT_ROOT_DEPT_ID
+  )
+}
+
 // 当前报表（由列表页传入 key，对应字典键值/tableId）
 const table = ref(null)
-const latest = getLatestMonth()
-const year = ref(latest.year)
-const month = ref(latest.month)
+// 判断当前报表是日报还是月报：看表配置里的 isDaily 字段
+const isDaily = computed(() => !!table.value?.isDaily)
+
+// 月报：取最新数据月
+const latestMonth = getLatestMonth()
+const year = ref(latestMonth.year)
+const month = ref(latestMonth.month)
 const monthValue = ref(`${year.value}-${month.value}`)
-const rootDeptId = ref(DEFAULT_ROOT_DEPT_ID)
-const deptId = ref('all')
+
+// 日报：取今天（IndexTime=YYYY-MM-DD）
+const latestDay = getLatestDay()
+const dayValue = ref(`${latestDay.year}-${latestDay.month}-${latestDay.day}`)
+
+const rootDeptId = ref(resolveRootDeptId())
+const deptList = ref(REPORT_DEPT_LIST)
+const deptOptions = ref(REPORT_DEPT_LIST.map(d => d.deptName))
+// 单位下拉列表：deptNoAll=true 时去掉"全部"选项（检修日报-1）
+const deptPickerOptions = computed(() => {
+  if (table.value?.params?.deptNoAll) {
+    return REPORT_DEPT_LIST.filter(d => d.deptId !== 'all').map(d => d.deptName)
+  }
+  return deptOptions.value
+})
+const deptPickerList = computed(() => {
+  if (table.value?.params?.deptNoAll) {
+    return REPORT_DEPT_LIST.filter(d => d.deptId !== 'all')
+  }
+  return deptList.value
+})
+const deptIndex = ref(0)
+const deptId = ref(REPORT_DEPT_LIST[0]?.deptId || 'all')
 const url = ref('')
 const isLandscape = ref(false)
 let subWv = null
@@ -100,8 +169,11 @@ const FIT_JS = `(function(){
 function getReportOrigin() {
   const base = getBaseUrl() || 'https://10.102.124.50/jwxt/prod-api/'
   try {
-    return new URL(base).origin
+    const origin = new URL(base).origin
+    console.log('[机务数据中心]getBaseUrl =', base, '→ origin =', origin)
+    return origin
   } catch (e) {
+    console.log('[机务数据中心]new URL 失败，兜底返回 https://10.102.124.50, base =', base, e.message)
     return 'https://10.102.124.50'
   }
 }
@@ -109,14 +181,71 @@ function getReportOrigin() {
 function buildUrl() {
   if (!table.value) return ''
   // 备注列已是完整相对地址（?viewlet=...&op=write&ref_c=...），直接在其后拼接动态参数
-  const params = [
-    `tableId=${table.value.key}`,
-    `year=${year.value}`,
-    `month=${month.value}`,
-    `rootDeptId=${rootDeptId.value}`,
-    `deptId=${deptId.value}`
-  ]
-  return `${getReportOrigin()}${table.value.path}&${params.join('&')}`
+  let params = []
+  if (isDaily.value) {
+    // 日报：参数名从 table.params 读取（兼容不同报表不同参数名）
+    // 默认 dateKey=indexTime / deptKey=deptId；检修日报等用 statusTime / depotId
+    const pcfg = table.value.params || {}
+    const dateKey = pcfg.dateKey || 'indexTime'
+    const deptKey = pcfg.deptKey || 'deptId'
+
+    // 日期偏移：dateOffset=-1 表示取选择日期的前一天（生产日报导出）
+    let dateValue = dayValue.value
+    if (pcfg.dateOffset) {
+      const d = new Date(dayValue.value + 'T00:00:00')
+      d.setDate(d.getDate() + pcfg.dateOffset)
+      const y = d.getFullYear()
+      const m = String(d.getMonth() + 1).padStart(2, '0')
+      const dd = String(d.getDate()).padStart(2, '0')
+      dateValue = `${y}-${m}-${dd}`
+    }
+
+    // deptId 取值规则：
+    // - noDept: true           → 不传 dept 参数（生产日报导出）
+    // - deptValue='userDeptId' → 当前用户自己的部门 ID
+    // - deptValue='rootDeptId' → 根部门 ID
+    // - deptKey='depotId'      → 用户下拉选的值
+    // - 其他（默认 deptId）     → 根部门
+    if (pcfg.noDept) {
+      // 不传 dept 参数
+      params = [
+        `tableId=${table.value.key}`,
+        `${dateKey}=${dateValue}`
+      ]
+    } else {
+      let deptValue
+      if (pcfg.deptValue === 'userDeptId') {
+        deptValue = userStore.user?.deptId || rootDeptId.value
+      } else if (pcfg.deptValue === 'rootDeptId') {
+        deptValue = rootDeptId.value
+      } else if (pcfg.deptKey === 'depotId') {
+        deptValue = deptId.value
+      } else {
+        deptValue = rootDeptId.value
+      }
+      params = [
+        `tableId=${table.value.key}`,
+        `${dateKey}=${dateValue}`,
+        `${deptKey}=${deptValue}`
+      ]
+    }
+    // 额外固定参数（如 editable=false）
+    if (pcfg.extra) {
+      Object.entries(pcfg.extra).forEach(([k, v]) => params.push(`${k}=${v}`))
+    }
+  } else {
+    // 月报参数：year + month + rootDeptId + deptId
+    params = [
+      `tableId=${table.value.key}`,
+      `year=${year.value}`,
+      `month=${month.value}`,
+      `rootDeptId=${rootDeptId.value}`,
+      `deptId=${deptId.value}`
+    ]
+  }
+  const full = `${getReportOrigin()}${table.value.path}&${params.join('&')}`
+  console.log('[机务数据中心] buildUrl 完整 URL =', full)
+  return full
 }
 
 function refreshUrl() {
@@ -129,8 +258,29 @@ function injectFit() {
   subWv.evalJS(FIT_JS)
 }
 
-function createSubWebview() {
-  if (!url.value) return
+// 动态获取 bar 实际高度（两行布局，高度不确定）
+function getBarHeight() {
+  return new Promise((resolve) => {
+    let settled = false
+    const timeoutId = setTimeout(() => {
+      if (!settled) {
+        settled = true
+        resolve(72) // 兜底：两行估算 ~ 72px
+      }
+    }, 300)
+    const query = uni.createSelectorQuery()
+    query.select('.bar').boundingClientRect((rect) => {
+      if (settled) return
+      settled = true
+      clearTimeout(timeoutId)
+      resolve(rect && rect.height ? rect.height : 72)
+    }).exec()
+  })
+}
+
+async function createSubWebview() {
+  if (!url.value) { console.warn('[机务数据中心] url 为空，跳过 createSubWebview'); return }
+  console.log('[机务数据中心] createSubWebview url =', url.value)
   // 重复进入先清理
   const old = plus.webview.getWebviewById(SUB_WV_ID)
   if (old) old.close()
@@ -139,7 +289,8 @@ function createSubWebview() {
   const page = pages[pages.length - 1]
   const parentWv = page.$getAppWebview()
   const sys = uni.getSystemInfoSync()
-  const top = (sys.statusBarHeight || 0) + NAV_HEIGHT + BAR_HEIGHT
+  const barH = await getBarHeight()
+  const top = (sys.statusBarHeight || 0) + NAV_HEIGHT + barH
 
   subWv = plus.webview.create(url.value, SUB_WV_ID, {
     top,
@@ -177,12 +328,13 @@ function toggleOrientation() {
 }
 
 // 根据当前屏幕方向重新铺满子 webview，并重新自适应报表宽度
-function relayoutSubWv() {
+async function relayoutSubWv() {
   if (!subWv) return
   const sys = uni.getSystemInfoSync()
   const landscape = sys.windowWidth > sys.windowHeight
   isLandscape.value = landscape
-  const top = (sys.statusBarHeight || 0) + NAV_HEIGHT + BAR_HEIGHT
+  const barH = await getBarHeight()
+  const top = (sys.statusBarHeight || 0) + NAV_HEIGHT + barH
   subWv.setStyle({ top, left: 0, right: 0, bottom: 0 })
   setTimeout(injectFit, 300)
   setTimeout(injectFit, 1000)
@@ -199,7 +351,43 @@ function onMonthChange(e) {
   year.value = y
   month.value = m
   monthValue.value = v
+}
+
+function onDayChange(e) {
+  const v = e.detail.value // YYYY-MM-DD
+  // #ifdef APP-PLUS
+  showSubWv()
+  // #endif
+  if (!v) return
+  dayValue.value = v
+}
+
+function onDeptChange(e) {
+  const idx = Number(e.detail.value)
+  const list = deptPickerList.value
+  if (idx < 0 || idx >= list.length) return
+  deptIndex.value = idx
+  deptId.value = list[idx].deptId
+  // #ifdef APP-PLUS
+  showSubWv()
+  // #endif
+}
+
+// 点击"查询"按钮时统一刷新
+function onQuery() {
+  // depotId 类型表：必须选了具体单位才能查（不能是"全部"也不能空）
+  // 但 hideDept=true 时表示单位由后端/用户身份自动决定（如 userDeptId），不再强制要求
+  if (table.value?.params?.deptKey === 'depotId' && !table.value?.params?.hideDept) {
+    if (!deptId.value || deptId.value === 'all') {
+      uni.showToast({ title: '请选择单位', icon: 'none' })
+      return
+    }
+  }
+  // #ifdef APP-PLUS
+  showSubWv()
+  // #endif
   refreshUrl()
+  console.log('[机务数据中心] 查询', table.value?.label, url.value)
   // #ifdef APP-PLUS
   if (subWv) subWv.loadURL(url.value)
   // #endif
@@ -221,7 +409,7 @@ onLoad((options) => {
   const key = options?.key ? decodeURIComponent(options.key) : 'depotCondition'
   table.value = getReportTable(key)
   if (!table.value) {
-    console.error('【报表】未找到报表配置:', key)
+    console.error('[机务数据中心] 未找到报表配置:', key)
     return
   }
 
@@ -231,10 +419,32 @@ onLoad((options) => {
   if (options?.deptId) deptId.value = String(options.deptId)
   monthValue.value = `${year.value}-${month.value}`
 
+  // 调试日志：打印用户信息和最终参数
+  // [系统:机务数据中心]
+  console.log('[机务数据中心] userStore.user =', JSON.stringify(userStore.user))
+  console.log('[机务数据中心] resolveRootDeptId =', rootDeptId.value)
+  console.log('[机务数据中心] 部门列表 =', JSON.stringify(REPORT_DEPT_LIST))
+
+  // 如果外部传了 deptId，同步 picker 索引
+  if (options?.deptId) {
+    const incomingDeptId = String(options.deptId)
+    const idx = REPORT_DEPT_LIST.findIndex(d => d.deptId === incomingDeptId)
+    if (idx >= 0) {
+      deptIndex.value = idx
+      deptId.value = incomingDeptId
+    }
+  }
+
+  // depotId 类型表：默认显示"请选择"，不预选"全部"
+  if (table.value?.params?.deptKey === 'depotId' && !options?.deptId) {
+    deptIndex.value = -1
+    deptId.value = ''
+  }
+
   uni.setNavigationBarTitle({ title: table.value.label })
   refreshUrl()
 
-  console.log('【报表】', table.value.label, url.value)
+  console.log('[机务数据中心] 初始化', table.value.label, url.value)
 })
 
 onReady(() => {
@@ -274,20 +484,32 @@ onUnload(() => {
 }
 
 .bar {
-  height: 44px;
   box-sizing: border-box;
   display: flex;
-  align-items: center;
-  padding: 0 12px;
+  flex-direction: column;
+  padding: 6px 12px;
   background: var(--card-bg, #fff);
   box-shadow: 0 2rpx 8rpx var(--shadow, rgba(0,0,0,0.05));
   position: relative;
   z-index: 10;
 }
 
+.bar-row {
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+.bar-row + .bar-row {
+  margin-top: 6px;
+}
+
 .bar-item {
   display: flex;
   align-items: center;
+}
+
+.bar-item-flex {
   flex: 1;
 }
 
@@ -305,6 +527,10 @@ onUnload(() => {
   padding: 5px 14px;
 }
 
+.picker-box-wide {
+  min-width: 160px;
+}
+
 .bar-btn {
   margin: 0 0 0 10px;
   background: #1677ff;
@@ -316,8 +542,13 @@ onUnload(() => {
   line-height: 32px;
 }
 
-.bar-btn-rotate {
+.bar-btn-query {
   background: #2e7d32;
+  min-width: 60px;
+}
+
+.bar-btn-rotate {
+  background: #1677ff;
   min-width: 64px;
 }
 
@@ -346,4 +577,6 @@ onUnload(() => {
   font-size: 28rpx;
   color: var(--text-tertiary, #86909c);
 }
+
+
 </style>
