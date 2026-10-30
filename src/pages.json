@@ -76,6 +76,13 @@
       }
     },
     {
+      "path": "pages/reportGroupView/reportGroupView",
+      "style": {
+        "navigationBarTitleText": "机务数据中心日报",
+        "pageOrientation": "auto"
+      }
+    },
+    {
       "path": "pages/message/message",
       "style": {
         "navigationBarTitleText": "消息中心",

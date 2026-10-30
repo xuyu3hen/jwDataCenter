@@ -40,28 +40,60 @@
                   </view>
                   <text class="row-arrow">›</text>
                 </view>
-                <!-- 子嵌套分组 -->
+                <!-- 跳转分组（机务数据中心日报的子分组） -->
+                <view v-else-if="child.type === 'jump'" class="group group-jump" hover-class="row-hover" @click="openGroup(child)">
+                  <view class="group-title group-title-sub">
+                    <text class="group-icon">📁</text>
+                    <text class="group-label">{{ child.title }}</text>
+                    <text class="group-count">{{ child.keys.length }} 张</text>
+                    <text class="group-arrow">›</text>
+                  </view>
+                </view>
+                <!-- 子嵌套分组（展开式，里面可能有 table/jump/更深 group） -->
                 <view v-else class="group group-nested">
                   <view class="group-title group-title-sub" @click="toggle(child.title)">
                     <text class="group-icon">📁</text>
                     <text class="group-label">{{ child.title }}</text>
-                    <text class="group-count">{{ child.keys.length }} 张</text>
+                    <text class="group-count">{{ countChildren(child) }} 张</text>
                     <text class="group-arrow">{{ expanded[child.title] ? '▾' : '▸' }}</text>
                   </view>
                   <view v-if="expanded[child.title]" class="group-body">
-                    <view
-                      v-for="k in child.keys"
-                      :key="k"
-                      class="row row-child row-child-indent"
-                      hover-class="row-hover"
-                      @click="openTable(getTableByKey(k))"
-                    >
-                      <view class="row-main">
-                        <text class="row-name">{{ getTableByKey(k)?.label }}</text>
-                        <text v-if="getTableByKey(k) && !getTableByKey(k).path" class="row-todo">（待接入）</text>
+                    <!-- child.children 存在：递归渲染 -->
+                    <template v-if="child.children && child.children.length">
+                      <template v-for="(cc, cci) in child.children" :key="cci">
+                        <view v-if="cc.type === 'table'" class="row row-child row-child-indent" hover-class="row-hover" @click="openTable(getTableByKey(cc.key))">
+                          <view class="row-main">
+                            <text class="row-name">{{ getTableByKey(cc.key)?.label }}</text>
+                            <text v-if="getTableByKey(cc.key) && !getTableByKey(cc.key).path" class="row-todo">（待接入）</text>
+                          </view>
+                          <text class="row-arrow">›</text>
+                        </view>
+                        <view v-else-if="cc.type === 'jump'" class="group group-jump row-child-indent" hover-class="row-hover" @click="openGroup(cc)">
+                          <view class="group-title group-title-sub">
+                            <text class="group-icon">📁</text>
+                            <text class="group-label">{{ cc.title }}</text>
+                            <text class="group-count">{{ cc.keys.length }} 张</text>
+                            <text class="group-arrow">›</text>
+                          </view>
+                        </view>
+                      </template>
+                    </template>
+                    <!-- child.keys 存在：扁平列表 -->
+                    <template v-else-if="child.keys && child.keys.length">
+                      <view
+                        v-for="k in child.keys"
+                        :key="k"
+                        class="row row-child row-child-indent"
+                        hover-class="row-hover"
+                        @click="openTable(getTableByKey(k))"
+                      >
+                        <view class="row-main">
+                          <text class="row-name">{{ getTableByKey(k)?.label }}</text>
+                          <text v-if="getTableByKey(k) && !getTableByKey(k).path" class="row-todo">（待接入）</text>
+                        </view>
+                        <text class="row-arrow">›</text>
                       </view>
-                      <text class="row-arrow">›</text>
-                    </view>
+                    </template>
                   </view>
                 </view>
               </template>
@@ -149,12 +181,15 @@ const tableMap = computed(() => {
 })
 function getTableByKey(key) { return tableMap.value[key] }
 
-// 分组展开状态（默认全部展开）
+// 分组展开状态（默认全部折叠，点击再展开）
 const expanded = reactive({
-  '生产日报表': true,
-  '检修日报': true,
-  '机务数据中心日报': true,
-  '各段交班日报': true
+  '生产日报表': false,
+  '检修日报': false,
+  '机务数据中心日报': false,
+  '日报': false,
+  '周报': false,
+  '月报': false,
+  '各段交班日报': false
 })
 function toggle(title) { expanded[title] = !expanded[title] }
 
@@ -166,6 +201,14 @@ function openTable(t) {
   }
   uni.navigateTo({
     url: `/pages/reportView/reportView?key=${encodeURIComponent(t.key)}`
+  })
+}
+
+// 跳转分组：进入 reportGroupView 分组页
+function openGroup(child) {
+  if (!child?.jump) return
+  uni.navigateTo({
+    url: `/pages/reportGroupView/reportGroupView?group=${encodeURIComponent(child.jump)}`
   })
 }
 
@@ -291,6 +334,19 @@ onLoad((options) => {
   box-shadow: none;
   border-radius: 12rpx;
   background: rgba(22, 119, 255, 0.04);
+}
+
+/* 跳转分组：整卡可点，箭头向右 */
+.group-jump {
+  margin: 8rpx 16rpx 8rpx;
+  border-radius: 12rpx;
+  background: linear-gradient(135deg, rgba(22,119,255,0.08), rgba(82,196,26,0.08));
+  box-shadow: none;
+}
+
+.group-jump .group-title-sub {
+  background: transparent;
+  cursor: pointer;
 }
 
 .group-title {
